@@ -4,6 +4,11 @@
 #include <string.h>
 int x=666;
 int token=0;
+int count = 0;
+
+void insertNode (int line, int counter, char text, char type){
+	//do the insert also check above if i made a mistake on parameters
+}
 
 %}
 
@@ -13,9 +18,37 @@ int token=0;
 %option case-insensitive 
 
 
-IF if
+IF_ST "if"
+ELSE_ST "else"
+FOR_ST "for"
+WHILE_ST "while"
+AND_ST "and"
+NOT_ST "not"
+OR_ST "or"
+LOCAL_ST "local"
+CONTINUE_ST "continue"
+BREAK_ST "break"
+TRUE_ST "true"
+FALSE_ST "false"
+NILL_ST "nill"
+FUNC_ST "function"
+RETURN_ST "return"
 
-ADD "+"
+PLUS_OP "+"
+MINUS_OP "-"
+EQUAL_OP "="
+MULTI_OP "*"
+DIVISION_OP "/"
+PERCENT_OP "%"
+INCREMENT_OP "++"
+DICREMENT_OP "--"
+
+COMP_EQUAL_OP "=="
+COMP_NOT_EQUAL_OP "!="
+COMP_BIGGER_OP ">"
+COMP_LESS_OP "<"
+COMP_BIGGER_EQUAL_OP ">="
+COMP_LESS_EQUAL_OP "<="
 
 NUMBER_INT [0-9]+
 
@@ -23,7 +56,16 @@ NUMBER_REAL [0-9]+"."[0-9]+
 
 STRING \"
 
-LEFT_CBRACKET \{
+LEFT_CBRACKET "{"
+RIGHT_CBRACKET "}"
+LEFT_PARENTHESIS "("
+RIGHT_PARENTHESIS ")"
+SEMICOLON ";"
+COMMA ","
+COLON ":"
+DOUBLE_COLON "::"
+FULL_STOP "."
+RANGE ".."
 
 ID [a-zA-Z][a-zA-Z0-9]*
 
@@ -33,13 +75,7 @@ COMMENT1 "/*"
 
 SPACE  [\n\r \v\t]
 %%
-
-{IF}     {printf("%d:	#%d	\"%s\"	KEYWORD IF <-enumarated \n",yylineno,++token,yytext);}
-
-{ADD}     {printf("%d:   #%d     \"%s\"  OPERATOR PLUS <-enumerated \n",yylineno,++token,yytext);}
-
 {NUMBER_INT}     {printf("%d:   #%d     \"%s\"  INTCONST %s <-integer \n",yylineno,++token,yytext,yytext);}
-
 {NUMBER_REAL}     {printf("%d:   #%d     \"%s\"  REALCONST %s <-real \n",yylineno,++token,yytext,yytext);}
 
 {STRING}     {
@@ -97,8 +133,6 @@ SPACE  [\n\r \v\t]
 		}
 }
 
-{LEFT_CBRACKET} { 	printf("%d:	#%d	\"%s\" LEFT_BRACE <-enumarated\n",yylineno,++token,yytext); }
-
 {ID}		{	printf("%d:     #%d     \"%s\" ID  \"%s\" <-char*\n",yylineno,++token,yytext,yytext); }
 
 {COMMENT} {
@@ -152,6 +186,49 @@ SPACE  [\n\r \v\t]
 }
 
 {SPACE}		{}
+
+{IF_ST}		{insert(yylineno,++count,yytext,"")}
+{ELSE_ST}	{insert(yylineno,++count,yytext,"")}
+{FOR_ST}	{insert(yylineno,++count,yytext,"")}
+{WHILE_ST}	{insert(yylineno,++count,yytext,"")}
+{AND_ST}	{insert(yylineno,++count,yytext,"")}
+{NOT_ST}	{insert(yylineno,++count,yytext,"")}
+{OR_ST}		{insert(yylineno,++count,yytext,"")}
+{LOCAL_ST}	{insert(yylineno,++count,yytext,"")}
+{CONTINUE_ST}	{insert(yylineno,++count,yytext,"")}
+{BREAK_ST}	{insert(yylineno,++count,yytext,"")}
+{TRUE_ST}	{insert(yylineno,++count,yytext,"")}
+{FALSE_ST}	{insert(yylineno,++count,yytext,"")}
+{NILL_ST}	{insert(yylineno,++count,yytext,"")}
+{FUNC_ST}	{insert(yylineno,++count,yytext,"")}
+{RETURN_ST}	{insert(yylineno,++count,yytext,"")}
+
+{PLUS_OP}	{insert(yylineno,++count,yytext,"")}
+{MINUS_OP}	{insert(yylineno,++count,yytext,"")}
+{EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
+{MULTI_OP}	{insert(yylineno,++count,yytext,"")}
+{DIVISION_OP}	{insert(yylineno,++count,yytext,"")}
+{PERCENT_OP}	{insert(yylineno,++count,yytext,"")}
+{INCREMENT_OP}	{insert(yylineno,++count,yytext,"")}
+{DICREMENT_OP}	{insert(yylineno,++count,yytext,"")}
+
+{COMP_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
+{COMP_NOT_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
+{COMP_BIGGER_OP}	{insert(yylineno,++count,yytext,"")}
+{COMP_LESS_OP}	{insert(yylineno,++count,yytext,"")}
+{COMP_BIGGER_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
+{COMP_LESS_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
+
+{LEFT_CBRACKET}	{insert(yylineno,++count,yytext,"")}
+{RIGHT_CBRACKET}	{insert(yylineno,++count,yytext,"")}
+{LEFT_PARENTHESIS}	{insert(yylineno,++count,yytext,"")}
+{RIGHT_PARENTHESIS}	{insert(yylineno,++count,yytext,"")}
+{SEMICOLON}	{insert(yylineno,++count,yytext,"")}
+{COMMA}		{insert(yylineno,++count,yytext,"")}
+{COLON}		{insert(yylineno,++count,yytext,"")}
+{DOUBLE_COLON}	{insert(yylineno,++count,yytext,"")}
+{FULL_STOP}		{insert(yylineno,++count,yytext,"")}
+{RANGE}		{insert(yylineno,++count,yytext,"")}
 
 %%
 int main(int argc,char** argv)
