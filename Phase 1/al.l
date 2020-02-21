@@ -6,9 +6,7 @@ int x=666;
 int token=0;
 int count = 0;
 
-void insertNode (int line, int counter, char text, char type){
-	//do the insert also check above if i made a mistake on parameters
-}
+
 
 %}
 
@@ -219,18 +217,114 @@ SPACE  [\n\r \v\t]
 {COMP_BIGGER_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
 {COMP_LESS_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
 
-{LEFT_CBRACKET}	{insert(yylineno,++count,yytext,"")}
-{RIGHT_CBRACKET}	{insert(yylineno,++count,yytext,"")}
-{LEFT_PARENTHESIS}	{insert(yylineno,++count,yytext,"")}
-{RIGHT_PARENTHESIS}	{insert(yylineno,++count,yytext,"")}
-{SEMICOLON}	{insert(yylineno,++count,yytext,"")}
-{COMMA}		{insert(yylineno,++count,yytext,"")}
-{COLON}		{insert(yylineno,++count,yytext,"")}
-{DOUBLE_COLON}	{insert(yylineno,++count,yytext,"")}
-{FULL_STOP}		{insert(yylineno,++count,yytext,"")}
-{RANGE}		{insert(yylineno,++count,yytext,"")}
+{LEFT_CBRACKET}	{insert(yylineno,++count,yytext,8)}
+{RIGHT_CBRACKET}	{insert(yylineno,++count,yytext,8)}
+{LEFT_PARENTHESIS}	{insert(yylineno,++count,yytext,8)}
+{RIGHT_PARENTHESIS}	{insert(yylineno,++count,yytext,8)}
+{SEMICOLON}	{insert(yylineno,++count,yytext,8)}
+{COMMA}		{insert(yylineno,++count,yytext,8)}
+{COLON}		{insert(yylineno,++count,yytext,8)}
+{DOUBLE_COLON}	{insert(yylineno,++count,yytext,8)}
+{FULL_STOP}		{insert(yylineno,++count,yytext,8)}
+{RANGE}		{insertNode(yylineno,++count,yytext,8}
 
 %%
+
+typedef struct node{
+    int line;
+    int token_counter;
+    char* text;
+    char* type;
+    char* value; 
+
+
+    struct node* next;
+    struct node* prev;
+}alpha_token_t;
+/*
+types :
+IDENT 1  
+INT 2
+REAL 3
+STRING 4
+OPERATOR 5
+KEYWORD 6
+COMMENT 7
+PUNCTUATION 8
+*/
+
+alpha_token_t *listHead=NULL;
+alpha_token_t *listTail=NULL;
+
+void insertNode (int line, char* value , char* text, int type){
+	alpha_token_t *new_token = malloc(sizeof(alpha_token_t));
+	new_token->line=line;
+	new_token->token_counter=count;
+	if(type==1){
+		new_token->text=strdup(text);
+		new_token->type=strdup("IDENT");
+		new_token->value=strdup(text);
+
+	}
+	else if(type==2){
+		new_token->text=strdup(text);
+		new_token->type=strdup("INT");
+		new_token->value=atoi(text);
+	}
+	else if(type==3){
+		new_token->text=strdup(text);
+		new_token->type=strdup("REAL");
+		new_token->value=atof(text);	
+	}
+	else if(type==4){
+		new_token->text=strdup(text);
+		new_token->type=strdup("STRING");
+		new_token->value=strdup(value);	
+	}
+	else if(type==5){
+		new_token->text=strdup(text);
+		new_token->type=strdup("OPERATOR");
+		new_token->value=strdup(value);
+	}
+	else if(type==6){
+		new_token->text=strdup(text);
+		new_token->type=strdup("KEYWORD");
+		new_token->value=strdup(value);	
+	}
+	else if(type==7){
+		new_token->text=strdup(text);
+		new_token->type=strdup("COMMENT");
+		new_token->value=strdup(value);
+	}
+	else if(type==8){
+		new_token->text=strdup(text);
+		new_token->type=strdup("PUNCTUATION");
+		new_token->value=strdup(value);
+	}
+
+	if(listHead==NULL){
+		listHead=new_token;
+		listHead->next=new_token;
+		listHead->prev=NULL;
+		listTail=new_token;
+		listTail->next=NULL;
+		listTail->prev=new_token;
+	}
+	else{
+		new_token->prev=listTail;
+		new_token->next=NULL;
+		listTail->next=new_token;
+		listTail=new_token;
+	}
+}
+void printList(){
+	alpha_token_t* tmp = listHead;
+	while(tmp!=NULL){
+		printf("%d: #d    %s    %s      %s\n",tmp->line,tmp->token_counter,tmp->text,tmp->type,tmp->value);
+		tmp=tmp->next;
+	}
+}
+
 int main(int argc,char** argv)
 {
   if(argc>1){
@@ -238,9 +332,9 @@ int main(int argc,char** argv)
       fprintf(stderr,"Cannot read file:%s\n",argv[1]);
       return 1;
    }
-  }else
+  }else{
     yyin=stdin;
-
+  }
 
 
     yylex();
