@@ -2,233 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 int x=666;
 int token=0;
 int count = 0;
-
-
-
-%}
-
-%option header-file="./scanner"
-%option noyywrap
-%option yylineno
-%option case-insensitive 
-
-
-IF_ST "if"
-ELSE_ST "else"
-FOR_ST "for"
-WHILE_ST "while"
-AND_ST "and"
-NOT_ST "not"
-OR_ST "or"
-LOCAL_ST "local"
-CONTINUE_ST "continue"
-BREAK_ST "break"
-TRUE_ST "true"
-FALSE_ST "false"
-NILL_ST "nill"
-FUNC_ST "function"
-RETURN_ST "return"
-
-PLUS_OP "+"
-MINUS_OP "-"
-EQUAL_OP "="
-MULTI_OP "*"
-DIVISION_OP "/"
-PERCENT_OP "%"
-INCREMENT_OP "++"
-DICREMENT_OP "--"
-
-COMP_EQUAL_OP "=="
-COMP_NOT_EQUAL_OP "!="
-COMP_BIGGER_OP ">"
-COMP_LESS_OP "<"
-COMP_BIGGER_EQUAL_OP ">="
-COMP_LESS_EQUAL_OP "<="
-
-NUMBER_INT [0-9]+
-
-NUMBER_REAL [0-9]+"."[0-9]+
-
-STRING \"
-
-LEFT_CBRACKET "{"
-RIGHT_CBRACKET "}"
-LEFT_PARENTHESIS "("
-RIGHT_PARENTHESIS ")"
-SEMICOLON ";"
-COMMA ","
-COLON ":"
-DOUBLE_COLON "::"
-FULL_STOP "."
-RANGE ".."
-
-ID [a-zA-Z][a-zA-Z0-9]*
-
-COMMENT  "//".*
-
-COMMENT1 "/*"
-
-SPACE  [\n\r \v\t]
-%%
-{NUMBER_INT}     {printf("%d:   #%d     \"%s\"  INTCONST %s <-integer \n",yylineno,++token,yytext,yytext);}
-{NUMBER_REAL}     {printf("%d:   #%d     \"%s\"  REALCONST %s <-real \n",yylineno,++token,yytext,yytext);}
-
-{STRING}     {
-
-		char *Stoken=(char*)malloc(sizeof(char));
-		int c;
-		int key=0;
-		while((c=input())!=EOF)
-		{
- 			if(c=='"'){
-				 Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-				 Stoken[key++]='\0';		
-				 break;
-			}
-			if(c=='\\') 
-			{
-			  c=input();
- 				  if(c!=EOF){
-					if	(c=='n'){
-					  	Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-						Stoken[key++]='\n';
-					}else if (c=='t'){
-						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-						Stoken[key++]='\t';
-					}else if (c=='\\'){
-						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-						Stoken[key++]='\\';
-					}else if(c=='\"'){
-						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-						Stoken[key++]='\"';
-					}else{
-
-						 Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-						 Stoken[key++]='\\';
-						 Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-						 Stoken[key++]=c;
-
-						 printf("\033[0;31m");
-						 printf("Invalid escape character:%c\n",c);
-						 printf("\033[0m");
-					}
-				  }
-			}else{
-			Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
-			Stoken[key++]=c;
-			}
-		}
-
-		if(c==EOF){
-  			 printf("\033[0;31m");
-		  	 printf("Unterminated string\n");
-			 printf("\033[0m");
-		}else{
-			 printf("%d:   #%d     \"%s\"  STRING %s <-char* \n",yylineno,++token,Stoken,Stoken);
-		}
-}
-
-{ID}		{	printf("%d:     #%d     \"%s\" ID  \"%s\" <-char*\n",yylineno,++token,yytext,yytext); }
-
-{COMMENT} {
-           printf("%d:   #%d	%s      COMMENT LINE_COMMENT <-enumarated \n",yylineno,++token,yytext);
-}
-
-{COMMENT1} {
-       int firstline=yylineno;
-       int lastline=1;
-       int c;
-       int left_counter=1;
-       int right_counter=0;
-       int balance=1;
-       while((c=input())!=EOF)
-       {
-	        	if(balance==0)break;
- 			if(c=='/'){
-	 			if((c=input())=='*') left_counter++;
-				else if(c=='/'){unput(c);}
-				else{}
-			}else  if(c=='*'){
-				if((c=input())=='/') right_counter++;
-				else if(c=='*'){unput(c);}
-                                else{}
-
-			}else{
-			}
-			balance=left_counter-right_counter;
-			lastline=yylineno;
-       }
-	
-	 if(c==EOF){
-                         printf("\033[0;31m");
-                         printf("Unterminated comment\n");
-                         printf("\033[0m");
-         }else{
-			 
-                         printf("%d:   #%d     \"%d-%d\"  COMMENT BLOCK_COMMENT <-enumarated \n",firstline,++token,firstline,lastline);
-        		 int j=1;
-			 while(j<right_counter)
-			 {
-				 printf("%d:   #%d     \"%d-%d\"  COMMENT NESTED_COMMENT:%d <-enumarated \n",firstline,++token,firstline,lastline,j);
-				 j++;
-			 } 
-	}
-
-
-
-	
-      printf("Left:%d,Right:%d\n",left_counter,right_counter);
-}
-
-{SPACE}		{}
-
-{IF_ST}		{insert(yylineno,++count,yytext,"")}
-{ELSE_ST}	{insert(yylineno,++count,yytext,"")}
-{FOR_ST}	{insert(yylineno,++count,yytext,"")}
-{WHILE_ST}	{insert(yylineno,++count,yytext,"")}
-{AND_ST}	{insert(yylineno,++count,yytext,"")}
-{NOT_ST}	{insert(yylineno,++count,yytext,"")}
-{OR_ST}		{insert(yylineno,++count,yytext,"")}
-{LOCAL_ST}	{insert(yylineno,++count,yytext,"")}
-{CONTINUE_ST}	{insert(yylineno,++count,yytext,"")}
-{BREAK_ST}	{insert(yylineno,++count,yytext,"")}
-{TRUE_ST}	{insert(yylineno,++count,yytext,"")}
-{FALSE_ST}	{insert(yylineno,++count,yytext,"")}
-{NILL_ST}	{insert(yylineno,++count,yytext,"")}
-{FUNC_ST}	{insert(yylineno,++count,yytext,"")}
-{RETURN_ST}	{insert(yylineno,++count,yytext,"")}
-
-{PLUS_OP}	{insert(yylineno,++count,yytext,"")}
-{MINUS_OP}	{insert(yylineno,++count,yytext,"")}
-{EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
-{MULTI_OP}	{insert(yylineno,++count,yytext,"")}
-{DIVISION_OP}	{insert(yylineno,++count,yytext,"")}
-{PERCENT_OP}	{insert(yylineno,++count,yytext,"")}
-{INCREMENT_OP}	{insert(yylineno,++count,yytext,"")}
-{DICREMENT_OP}	{insert(yylineno,++count,yytext,"")}
-
-{COMP_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
-{COMP_NOT_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
-{COMP_BIGGER_OP}	{insert(yylineno,++count,yytext,"")}
-{COMP_LESS_OP}	{insert(yylineno,++count,yytext,"")}
-{COMP_BIGGER_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
-{COMP_LESS_EQUAL_OP}	{insert(yylineno,++count,yytext,"")}
-
-{LEFT_CBRACKET}	{insert(yylineno,++count,yytext,8)}
-{RIGHT_CBRACKET}	{insert(yylineno,++count,yytext,8)}
-{LEFT_PARENTHESIS}	{insert(yylineno,++count,yytext,8)}
-{RIGHT_PARENTHESIS}	{insert(yylineno,++count,yytext,8)}
-{SEMICOLON}	{insert(yylineno,++count,yytext,8)}
-{COMMA}		{insert(yylineno,++count,yytext,8)}
-{COLON}		{insert(yylineno,++count,yytext,8)}
-{DOUBLE_COLON}	{insert(yylineno,++count,yytext,8)}
-{FULL_STOP}		{insert(yylineno,++count,yytext,8)}
-{RANGE}		{insertNode(yylineno,++count,yytext,8}
-
-%%
 
 typedef struct node{
     int line;
@@ -269,12 +46,12 @@ void insertNode (int line, char* value , char* text, int type){
 	else if(type==2){
 		new_token->text=strdup(text);
 		new_token->type=strdup("INT");
-		new_token->value=atoi(text);
+		new_token->value = strdup(text);
 	}
 	else if(type==3){
 		new_token->text=strdup(text);
 		new_token->type=strdup("REAL");
-		new_token->value=atof(text);	
+		new_token->value = strdup(text);	
 	}
 	else if(type==4){
 		new_token->text=strdup(text);
@@ -320,11 +97,248 @@ void insertNode (int line, char* value , char* text, int type){
 void printList(){
 	alpha_token_t* tmp = listHead;
 	while(tmp!=NULL){
-		printf("%d: #d    %s    %s      %s\n",tmp->line,tmp->token_counter,tmp->text,tmp->type,tmp->value);
+		printf("%d: #%d    %s    %s      %s\n",tmp->line,tmp->token_counter,tmp->text,tmp->type,tmp->value);
 		tmp=tmp->next;
 	}
 }
 
+
+
+%}
+
+%option header-file="./scanner"
+%option noyywrap
+%option yylineno
+%option case-insensitive 
+
+
+IF_ST	"if"
+ELSE_ST		"else"
+FOR_ST "for"
+WHILE_ST "while"
+AND_ST "and"
+NOT_ST "not"
+OR_ST "or"
+LOCAL_ST "local"
+CONTINUE_ST "continue"
+BREAK_ST "break"
+TRUE_ST "true"
+FALSE_ST "false"
+NIL_ST "nil"
+FUNC_ST "function"
+RETURN_ST "return"
+
+PLUS_OP "+"
+MINUS_OP "-"
+EQUAL_OP "="
+MULTI_OP "*"
+DIVISION_OP "/"
+PERCENT_OP "%"
+INCREMENT_OP "++"
+DICREMENT_OP "--"
+
+COMP_EQUAL_OP "=="
+COMP_NOT_EQUAL_OP "!="
+COMP_BIGGER_OP ">"
+COMP_LESS_OP "<"
+COMP_BIGGER_EQUAL_OP ">="
+COMP_LESS_EQUAL_OP "<="
+
+NUMBER_INT [0-9]+
+
+NUMBER_REAL [0-9]+"."[0-9]+
+
+STRING \"
+
+LEFT_CBRACKET "{"
+RIGHT_CBRACKET "}"
+LEFT_PARENTHESIS "("
+RIGHT_PARENTHESIS ")"
+SEMICOLON ";"
+COMMA ","
+COLON ":"
+DOUBLE_COLON "::"
+FULL_STOP "."
+RANGE ".."
+LEFT_ARRAY "["
+RIGHT_ARRAY "]"
+
+ID [a-zA-Z][a-zA-Z0-9_]*
+
+COMMENT  "//".*
+
+COMMENT1 "/*"
+
+SPACE  [\n\r \v\t]
+OTHER	[!~?#$]
+OTHER2	"&&"
+OTHER3	"||"
+%%
+{IF_ST}		{++count;  insertNode(yylineno,"IF",yytext,6);}
+{ELSE_ST}	{++count;  insertNode(yylineno,"ELSE",yytext,6);}
+{FOR_ST}	{++count;  insertNode(yylineno,"FOR",yytext,6);}
+{WHILE_ST}	{++count;  insertNode(yylineno,"WHILE",yytext,6);}
+{AND_ST}	{++count;  insertNode(yylineno,"AND",yytext,6);}
+{NOT_ST}	{++count;  insertNode(yylineno,"NOT",yytext,6);}
+{OR_ST}		{++count;  insertNode(yylineno,"OR",yytext,6);}
+{LOCAL_ST}	{++count;  insertNode(yylineno,"LOCAL",yytext,6);}
+{CONTINUE_ST}	{++count;  insertNode(yylineno,"CONTINUE",yytext,6);}
+{BREAK_ST}	{++count;  insertNode(yylineno,"BREAK",yytext,6);}
+{TRUE_ST}	{++count;  insertNode(yylineno,"TRUE",yytext,6);}
+{FALSE_ST}	{++count;  insertNode(yylineno,"FALSE",yytext,6);}
+{NIL_ST}	{++count;  insertNode(yylineno,"NIL",yytext,6);}
+{FUNC_ST}	{++count;  insertNode(yylineno,"FUNCTION",yytext,6);}
+{RETURN_ST}	{++count;  insertNode(yylineno,"RETURN",yytext,6);}
+
+{NUMBER_INT}     {++count;  insertNode(yylineno,NULL,yytext,2);}
+{NUMBER_REAL}     {++count;  insertNode(yylineno,NULL,yytext,3);}
+
+{STRING}     {
+
+		char *Stoken=(char*)malloc(sizeof(char));
+		int c;
+		int key=0;
+		while((c=input())!=0 )
+		{
+  			if(c=='"'){
+				 Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+				 Stoken[key++]='\0';		
+				 break;
+			}
+			if(c=='\\') 
+			{
+			  c=input();
+ 				  if(c!=0){
+					if	(c=='n'){
+					  	Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+						Stoken[key++]='\n';
+
+					}else if (c=='t'){
+						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+						Stoken[key++]='\t';
+
+					}else if (c=='\\'){
+						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+						Stoken[key++]='\\';
+
+					}else if(c=='\"'){
+						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+						Stoken[key++]='\"';
+
+					}else{
+
+						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+						Stoken[key++]='\\';
+						Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+						Stoken[key++]=c;
+
+						printf("\033[0;31m");
+						printf("Invalid escape character:%c\n",c);
+						printf("\033[0m");
+					}
+				  }
+			}else{
+			Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
+			Stoken[key++]=c;
+			}
+			
+		}
+
+		if(c==0){
+  			 printf("\033[0;31m");
+		  	 printf("Unterminated string in %d\n",yylineno);
+			 printf("\033[0m");
+		}else{
+			const char* a = "\"";
+			char* final= malloc((sizeof(char)*strlen(a))+(sizeof(char)*strlen(Stoken))+(sizeof(char)*strlen(a)));
+			strcat(final , a);
+			strcat(final , Stoken);
+			strcat(final , a);
+			++count;
+			insertNode(yylineno,Stoken,final,4);
+		}
+}
+
+{ID}		{++count;  insertNode(yylineno,NULL,yytext,1);}
+
+{COMMENT} {++count;  insertNode(yylineno,"LINE COMMENT",yytext,7);}
+
+{COMMENT1} {
+       int firstline=yylineno;
+       int lastline=1;
+       int c;
+       int left_counter=1;
+       int right_counter=0;
+       int balance=1;
+       while((c=input())!=0)
+       {
+	        	if(balance==0)break;
+ 			if(c=='/'){
+	 			if((c=input())=='*') left_counter++;
+				else if(c=='/'){unput(c);}
+				else{}
+			}else  if(c=='*'){
+				if((c=input())=='/') right_counter++;
+				else if(c=='*'){unput(c);}
+                                else{}
+
+			}else{
+			}
+			balance=left_counter-right_counter;
+			lastline=yylineno;
+       }
+	
+	 if(c==0 && balance != 0){
+                         printf("\033[0;31m");
+                         printf("Unterminated comment at line %d\n",yylineno);
+                         printf("\033[0m");
+         }else{
+			  		char buffer[258]; 
+   					sprintf(buffer, "%d - %d", firstline, lastline); 
+                    ++count; 
+					insertNode(yylineno,"BLOCK COMMENT",buffer,7);
+        		 int j=1;
+			 while(j<right_counter)
+			 {
+				++count; 
+				insertNode(yylineno,"NESTED COMMENT",buffer,7);
+				 j++;
+			 } 
+	}
+}
+
+{SPACE}		{}
+{OTHER}		{printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m");}
+{OTHER2}	{printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m");}
+{OTHER3}	{printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m");}
+{PLUS_OP}	{++count;  insertNode(yylineno,"PLUS",yytext,5);}
+{MINUS_OP}	{++count;  insertNode(yylineno,"MINUS",yytext,5);}
+{EQUAL_OP}	{++count;  insertNode(yylineno,"EQUAL",yytext,5);}
+{MULTI_OP}	{++count;  insertNode(yylineno,"MULTIPLY",yytext,5);}
+{DIVISION_OP}	{++count;  insertNode(yylineno,"DIVISION",yytext,5);}
+{PERCENT_OP}	{++count;  insertNode(yylineno,"PERCENT",yytext,5);}
+{INCREMENT_OP}	{++count;  insertNode(yylineno,"INCREMENT",yytext,5);}
+{DICREMENT_OP}	{++count;  insertNode(yylineno,"DICREMENT",yytext,5);}
+{COMP_EQUAL_OP}	{++count;  insertNode(yylineno,"COMPARE EQUAL",yytext,5);}
+{COMP_NOT_EQUAL_OP}	{++count;  insertNode(yylineno,"COMPARE NOT EQUAL",yytext,5);}
+{COMP_BIGGER_OP}	{++count;  insertNode(yylineno,"COMPARE BIGGER",yytext,5);}
+{COMP_LESS_OP}	{++count;  insertNode(yylineno,"COMPARE LESS",yytext,5);}
+{COMP_BIGGER_EQUAL_OP}	{++count;  insertNode(yylineno,"COMPARE BIGGER EQUAL",yytext,5);}
+{COMP_LESS_EQUAL_OP}	{++count;  insertNode(yylineno,"COMPARE LESS EQUAL",yytext,5);}
+{LEFT_CBRACKET}	{++count;  insertNode(yylineno,"LEFT BRACKET",yytext,5);}
+{RIGHT_CBRACKET}	{++count;  insertNode(yylineno,"RIGHT BRACKET",yytext,5);}
+{LEFT_PARENTHESIS}	{++count;  insertNode(yylineno,"LEFT PARENTHESIS",yytext,5);}
+{RIGHT_PARENTHESIS}	{++count;  insertNode(yylineno,"RIGHT PARENTHESIS",yytext,5);}
+{SEMICOLON}	{++count;  insertNode(yylineno,"SEMICOLON",yytext,5);}
+{COMMA}		{++count;  insertNode(yylineno,"COMMA",yytext,5);}
+{COLON}		{++count;  insertNode(yylineno,"COLON",yytext,5);}
+{DOUBLE_COLON}	{++count;  insertNode(yylineno,"DOUBLE_COLON",yytext,8);}
+{FULL_STOP}		{++count;  insertNode(yylineno,"FULL_STOP",yytext,8);}
+{RANGE}		{++count;  insertNode(yylineno,"RANGE",yytext,8);}
+{LEFT_ARRAY}	{++count;  insertNode(yylineno,"LEFT_ARRAY",yytext,8);}
+{RIGHT_ARRAY}	{++count;  insertNode(yylineno,"RIGHT_ARRAY",yytext,8);}
+
+%%
 int main(int argc,char** argv)
 {
   if(argc>1){
@@ -336,7 +350,8 @@ int main(int argc,char** argv)
     yyin=stdin;
   }
 
-
+	printf("--------------------		Lexical Analysis		--------------------\n");
     yylex();
+	printList();
     return 0;
 }
