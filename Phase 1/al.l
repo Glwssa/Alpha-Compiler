@@ -198,7 +198,7 @@ OTHER3	"||"
 		char *Stoken=(char*)malloc(sizeof(char));
 		int c;
 		int key=0;
-		while((c=input())!=0 )
+		while((c=input())!=EOF )
 		{
   			if(c=='"'){
 				 Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
@@ -244,7 +244,7 @@ OTHER3	"||"
 			
 		}
 
-		if(c==0){
+		if(c==EOF){
   			 printf("\033[0;31m");
 		  	 printf("Unterminated string in %d\n",yylineno);
 			 printf("\033[0m");
@@ -288,7 +288,7 @@ OTHER3	"||"
 			lastline=yylineno;
        }
 	
-	 if(c==0 && balance != 0){
+	 if(c==EOF && balance != 0){
                          printf("\033[0;31m");
                          printf("Unterminated comment at line %d\n",yylineno);
                          printf("\033[0m");
