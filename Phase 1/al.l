@@ -208,7 +208,7 @@ OTHER3	"||"
 			if(c=='\\') 
 			{
 			  c=input();
- 				  if(c!=0){
+ 				  if(c!=EOF){
 					if	(c=='n'){
 					  	Stoken=realloc(Stoken,(key+1) * (sizeof(char)));
 						Stoken[key++]='\n';
@@ -246,7 +246,7 @@ OTHER3	"||"
 
 		if(c==EOF){
   			 printf("\033[0;31m");
-		  	 printf("Unterminated string in %d\n",yylineno);
+		  	 printf("Unterminated string in line:%d\n",yylineno);
 			 printf("\033[0m");
 		}else{
 			const char* a = "\"";
@@ -270,7 +270,7 @@ OTHER3	"||"
        int left_counter=1;
        int right_counter=0;
        int balance=1;
-       while((c=input())!=0)
+       while((c=input())!=EOF)
        {
 	        	if(balance==0)break;
  			if(c=='/'){
@@ -290,18 +290,18 @@ OTHER3	"||"
 	
 	 if(c==EOF && balance != 0){
                          printf("\033[0;31m");
-                         printf("Unterminated comment at line %d\n",yylineno);
+                         printf("Unterminated comment at line %d\n",firstline);
                          printf("\033[0m");
          }else{
 			  		char buffer[258]; 
    					sprintf(buffer, "%d - %d", firstline, lastline); 
                     ++count; 
-					insertNode(yylineno,"BLOCK COMMENT",buffer,7);
+					insertNode(firstline,"BLOCK COMMENT",buffer,7);
         		 int j=1;
 			 while(j<right_counter)
 			 {
 				++count; 
-				insertNode(yylineno,"NESTED COMMENT",buffer,7);
+				insertNode(firstline,"NESTED COMMENT",buffer,7);
 				 j++;
 			 } 
 	}
@@ -355,3 +355,4 @@ int main(int argc,char** argv)
 	printList();
     return 0;
 }
+
