@@ -1,1 +1,7 @@
-a;  b; c;
+local f;
+local f;
+local print;
+{
+ local print;
+ local f;
+}

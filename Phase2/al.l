@@ -28,7 +28,6 @@ OPERATOR 5
 KEYWORD 6
 COMMENT 7
 PUNCTUATION 8
-bazinga
 */
 
 alpha_token_t *listHead=NULL;
