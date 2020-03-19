@@ -9,7 +9,11 @@ extern int yylineno;
 	extern FILE* yyout;
 int scope=0;
 int pnum=0;
+int namef=0;
 int FlagScopeFormal=0;
+char *IDV;
+int lock1=0;
+int lock2=0;
 %}
 
 %start program
@@ -94,6 +98,7 @@ char*  strVal;
 %left  LEFT_ARRAY  RIGHT_ARRAY
 %left  LEFT_PARENTHESIS  RIGHT_PARENTHESIS
 
+%type <strVal> lvalue
 
 
 %%
@@ -139,14 +144,60 @@ expr	:assignexpr  {printf("(%d)(expr->assignexpr)\n",++pnum );}
 term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{printf("(%d)( term->(expr) )\n",++pnum);}
     | MINUS_OP expr %prec UMINUS  {printf("(%d)(term-> -expr UMINUS)\n",++pnum);}
     | NOT_ST expr	{printf("(%d)(term->!expr)\n",++pnum);}
-    | INCREMENT_OP lvalue  {printf("(%d)(term-> ++lvalue)\n",++pnum);}
-    | lvalue INCREMENT_OP  {printf("(%d)(term-> lvalue++)\n",++pnum);}
-    | DICREMENT_OP lvalue  {printf("(%d)(term-> --lvalue)\n",++pnum);}
-    | lvalue DICREMENT_OP {printf("(%d)(term-> lvalue--)\n",++pnum);}
+    
+    | INCREMENT_OP lvalue  { 
+      if(IsFunction(scope,$2,yylineno)==1){
+       printf("\033[0;31m");
+			 printf("Error(%d)	[Variable] (function name with  operator) \"++%s\"\n",yylineno,$2); 
+			 printf("\033[0m");
+
+      }
+      
+       printf("(%d)(term-> ++lvalue)\n",++pnum);}
+   
+    | lvalue INCREMENT_OP  {
+       if(IsFunction(scope,$1,yylineno)==1){
+       printf("\033[0;31m");
+			 printf("Error(%d)	[Variable] (function name with operator) \"%s++\"\n",yylineno,$1); 
+			 printf("\033[0m");
+       }
+       printf("(%d)(term-> lvalue++)\n",++pnum);}
+   
+    | DICREMENT_OP lvalue  {
+      if(IsFunction(scope,$2,yylineno)==1){
+       printf("\033[0;31m");
+			 printf("Error(%d)	[Variable] (function name with operator) \"--%s\"\n",yylineno,$2); 
+			 printf("\033[0m");
+       }
+       printf("(%d)(term-> --lvalue)\n",++pnum);}
+    
+    | lvalue DICREMENT_OP {
+       if(IsFunction(scope,$1,yylineno)==1){
+       printf("\033[0;31m");
+			 printf("Error(%d)	[Variable] (function name with operator) \"%s--\"\n",yylineno,$1); 
+			 printf("\033[0m");
+       }
+       printf("(%d)(term-> lvalue--)\n",++pnum);}
     | primary  {printf("(%d)(term->primary)\n",++pnum);}
     ;
 
-assignexpr:lvalue EQUAL_OP expr{printf("(%d)(lvalue=expr)\n",++pnum);}
+assignexpr:lvalue EQUAL_OP expr{
+  
+    
+    if(lock1==0&&lock2==0){
+       if(IsFunction(scope,$1,yylineno)==1) {
+          printf("\033[0;31m");
+			    printf("Error(%d)	[Variable] (Assignation to function:%s)\n",yylineno,$1); 
+			    printf("\033[0m");
+        
+      }
+     }
+      
+      lock1=0;
+      lock2=0;
+    printf("C19:%s",$1);
+    printf("(%d)(assignexpr->lvalue=expr)\n",++pnum);}
+    
 	  ;
 
 primary: lvalue {printf("(%d)(primary->lvalue)\n",++pnum);}
@@ -156,10 +207,15 @@ primary: lvalue {printf("(%d)(primary->lvalue)\n",++pnum);}
 		| const	{printf("(%d)(primary->const)\n",++pnum);}
 		;
 
-lvalue:	ID {LookUpVariable(scope,$1,yylineno); printf("(%d)(lvalue->ID:%s)\n",++pnum,$1);}
+lvalue:	ID {LookUpVariable(scope,$1,yylineno); printf("(%d)(lvalue->ID:%s)\n",++pnum,$1);  
+        $$=$1; 
+      }
 		| LOCAL_ST ID {	LookUpLocal($2,scope,yylineno);
+        $$=$2; lock1=1;
 		  printf("(%d)(lvalue->local ID)\n",++pnum);}
-		| DOUBLE_COLON ID {LookUpGlobal($2,yylineno); printf("(%d)(lvalue->:: ID)\n",++pnum);}
+		| DOUBLE_COLON ID {LookUpGlobal($2,yylineno);
+        $$=$2; lock2=1;
+     printf("(%d)(lvalue->:: ID)\n",++pnum);}
 		| member{printf("(%d)(lvalue->member)\n",++pnum);}
 		;
 		
@@ -191,7 +247,7 @@ exprs:COMMA expr exprs {printf("(%d)(exprs->COMMA expr epxrs) \n",++pnum);}
 	 ;
 
 objectdef:LEFT_ARRAY elist RIGHT_ARRAY {printf("(%d)(objectdef->[elist])\n",++pnum);}
-         |LEFT_ARRAY indexed RIGHT_ARRAY {printf("(%d)(objectdef->[indexed]])\n",++pnum);}
+         |LEFT_ARRAY indexed RIGHT_ARRAY {printf("(%d)(objectdef->[indexed] )\n",++pnum);}
 	       ;
 indexed:indexedelem indexedelems {printf("(%d)(indexed->indexedelem indexedelems)\n",++pnum);}
          ;  
@@ -202,12 +258,12 @@ indexedelems	: COMMA indexedelem indexedelems	{printf("(%d)(indexedelems-> ,inde
 				| /*empty*/		{printf("(%d)(indexedelems->  )\n",++pnum);}
 				;	
 
-indexedelem :LEFT_CBRACKET expr COLON expr LEFT_CBRACKET {printf("(%d)(indexedelem ->{ expr : expr })\n",++pnum);}
+indexedelem :LEFT_CBRACKET expr COLON expr RIGHT_CBRACKET {printf("(%d)(indexedelem ->{ expr : expr })\n",++pnum);}
              ;
 block:LEFT_CBRACKET { ++scope;}  stmts RIGHT_CBRACKET {Hide(scope--); printf("(%d)(block->{stmts})\n",++pnum);}
      ;
 
-funcdef:  FUNC_ST {insert(3,"$f",scope,yylineno);} LEFT_PARENTHESIS {++scope;} idlist RIGHT_PARENTHESIS {scope--;} block {printf("(%d)(funcdef->function (idlist) block)\n",++pnum);}
+funcdef:  FUNC_ST {insert(3,MakeFunctionName(++namef),scope,yylineno);} LEFT_PARENTHESIS {++scope;} idlist RIGHT_PARENTHESIS {scope--;} block {printf("(%d)(funcdef->function (idlist) block)\n",++pnum);}
        |  FUNC_ST  ID {LookUpFunction(scope,$2,yylineno);} LEFT_PARENTHESIS {++scope;} idlist  RIGHT_PARENTHESIS  {scope--;}block { printf("(%d)(funcdef->function (idlist) block )\n",++pnum);}
        ;
 
@@ -259,10 +315,10 @@ int main(int argc,char** argv)
   }
 
     printf("--------------------            Syntax Analysis         --------------------\n");
-   // InitHash();
+    InitHash();
     yyparse();
    // display();
-    //PrintScopes();
+    PrintScopes();
     
     return 0;
 }

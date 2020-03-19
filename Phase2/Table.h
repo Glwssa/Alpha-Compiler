@@ -74,14 +74,21 @@ void  MakeNewScope(int scope,SymbolTableEntry *symbol){
 		    	HeadScope=newnode; //HeadScope is pointer in first element of scope list
 		}else{
 			 Scope *d;
+			 Scope *dprev;
 		    d=HeadScope;
+			dprev=d;
 		    while(d->next != NULL)
         		{
-           			
+					   dprev=d;
 					   d=d->next;
            			
         		}
-        	d->next=newnode;	
+        	if(d->scope<scope)	{
+				d->next=newnode;
+			}else{
+				dprev->next=newnode;
+				newnode->next=d;
+			}
 		}
 		   
 }
@@ -334,7 +341,7 @@ void LookUpGlobal(char *name,int line)
                   ptr2=ptr2->nextScope;
         }
   }else{
-    printf("Error(%d).HeadScope is NULL\n",line);
+    printf("Error(%d).HeadScope is NULL(LookUpGlobal).\n",line);
     return ;
   } 
 
@@ -507,7 +514,9 @@ void  MakeNewScope2(int scope,SymbolTableEntry *symbol){
 		    	HeadScope2=newnode; //HeadScope is pointer in first element of scope list
 		}else{
 			 Scope *d;
-		    d=HeadScope2;
+			 Scope *dprev;
+		     d=HeadScope2;
+			 dprev=d;
 		    while(d->next != NULL)
         		{
            			
@@ -515,6 +524,12 @@ void  MakeNewScope2(int scope,SymbolTableEntry *symbol){
            			
         		}
         	d->next=newnode;	
+			if(d->scope<scope)	{
+				d->next=newnode;
+			}else{
+				dprev->next=newnode;
+				newnode->next=d;
+			}
 		}
 		   
 }
@@ -564,7 +579,7 @@ void MakeTableWithElementsReverse(){
 			}
 			
             newnode->type=ptr2->type;
-	  		newnode->isActive=1;
+	  		newnode->isActive=ptr2->isActive;
 	  		newnode->next=NULL;
 	  		newnode->args=NULL;
 	  		newnode->line=ptr2->line;
@@ -598,7 +613,7 @@ void MakeTableWithElementsReverse(){
 		ptr=ptr->next;
 	}
 	
-//	printf("--------BLUEFACE BABY-------\n");
+  //  printf("--------BLUEFACE BABY-------\n");
 //	PrintScopes2();
 
 	return;
@@ -610,6 +625,7 @@ void LookUpVariable(int scope,char *name,int line)
 {
 	MakeTableWithElementsReverse();   //make Global list reverse
 	
+	int scopeoffunction;
     int scopeT=scope;
 	Scope *ptr=HeadScope2;
 	int functionFlag=0;
@@ -631,7 +647,9 @@ void LookUpVariable(int scope,char *name,int line)
 					 break;	
 				}
 			
-				if(ptr2->type==3) functionFlag=1;
+				if(ptr2->type==3&&(ptr2->isActive==1)) {functionFlag=1;
+				  scopeoffunction=ptr2->scope;
+				}
 				ptr2=ptr2->nextScope;
 			}
 		}else{
@@ -657,21 +675,36 @@ void LookUpVariable(int scope,char *name,int line)
     		printf("\033[0m");	
     		return;
 		}
-				
-		if(functionFlag==1&&ptr2->type!=3) {
+
+        if(ptr2->type==3) {
+			printf("\033[0;32m");
+			printf("Reference(%d)	[Variable] (Refernce to Function:%s)		(%d)\n",line,name,ptr2->line);
+			printf("\033[0m");	
+			return;
+		}
+
+
+
+		if(functionFlag==1&&ptr2->type!=3&&scopeoffunction<scope) {
 			printf("\033[0;31m");
 			printf("Error(%d)	[Variable] (Function Between:%s)		(%d)\n",line,name,ptr2->line); 
 			printf("\033[0m");	
 			return;
-		}
-		
-		if(functionFlag==1&&ptr2->type==3) {
+		}else{
 			printf("\033[0;32m");
-			printf("Reference(%d)	[Variable] (Refernce to Variable:%s)		(%d)\n",line,name,ptr2->line);
-			printf("\033[0m");	
-			return;
+			printf("Reference(%d)	[Variable] (Refernce to Variable:%s)			(%d)\n",line,name,ptr2->line);
+    		printf("\033[0m");	
+    		return;
 		}
 		
+		/*
+		if(functionFlag==1&&ptr2->type!=3&&scopeoffunction>=scope){
+			printf("\033[0;32m");
+			printf("Reference(%d)	[Variable] (Refernce to Variable:%s)			(%d)\n",line,name,ptr2->line);
+    		printf("\033[0m");	
+    		return;
+
+		}
 		
 		
 		if(functionFlag==0&&ptr2->scope!=0){
@@ -681,7 +714,8 @@ void LookUpVariable(int scope,char *name,int line)
     		return;
 		}else{
 			printf("line(%d):LookUpVariable  ERROR\n");
-		}
+			return;
+		}*/
 	}else{
 		
 		printf("Insertion(%d)	[Variable:%s]\n",line,name);
@@ -693,11 +727,82 @@ void LookUpVariable(int scope,char *name,int line)
 }
 
 
+char *MakeFunctionName(int i){
+ 
+     char strnum[20];
+     char name[]="$f";
+
+     sprintf(strnum,"%d",i);
+  
+     char* str1=(char *)malloc(sizeof(strnum)+sizeof(name)+1); 
+    if (str1!= NULL) {
+         strcpy(str1, name);
+         strcat(str1, strnum);
+
+    } else{
+        printf ( "malloc() failed in MakeFunctionName!\n");
+    } 
+  
+   // printf("%s\n",str1);
+    return str1;
+}
 
 
 
+int IsFunction(int scope,char *name,int line)
+{
+	MakeTableWithElementsReverse();   //make Global list reverse
+	
+    int scopeT=scope;
+	Scope *ptr=HeadScope2;
+	int functionFlag=0;
+	SymbolTableEntry* ptr2=NULL;
+	int flag=0;
+	while(scopeT>=0){
+		ptr=HeadScope2;				//head of the global table with reverse elements
+		while(ptr!=NULL){
+			if(ptr->scope==scopeT) break;
+			ptr=ptr->next;
+		}
+		
+		if(ptr!=NULL){
+			ptr2=ptr->symbol;
+			while(ptr2!=NULL){
+				if(strcmp(ptr2->name,name)==0&&(ptr2->isActive==1)&&(ptr2->type==3||ptr2->type==4))
+				{
+					 flag=1;
+					 break;	
+				}
+			
+			
+				ptr2=ptr2->nextScope;
+			}
+		}else{
+		//	printf("line(%d):LookUpVariable  [ptr==NULL]\n",line);
+		}
+		
+		if(	flag==1) {
+			printf("ENA DIO\n");
+			break;
+		}
+		else {
+			
+		}
+		--scopeT;
+	}
+	
+		HeadScope2=NULL;
+	
+	if(flag==1 && ptr2!=NULL) {
 
-
+			return	1;
+		
+	}else{
+		
+		    return	0;
+	}
+    return;
+}
 
 
 
