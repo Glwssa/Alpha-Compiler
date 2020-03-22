@@ -62,7 +62,7 @@ SymbolTableEntry *c2={NULL};
 void  MakeNewScope(int scope,SymbolTableEntry *symbol){
  		Scope* newnode=(Scope *)malloc(sizeof(Scope));
  		if(newnode==NULL) {
- 			printf("error in making of new entry of scope list\n");
+ 		//	printf("error in making of new entry of scope list\n");
  			return;
 		 }
 		 
@@ -131,7 +131,7 @@ void EnterScopeList(int scope,SymbolTableEntry *symbol){
 	}
 	
 	if(prev!=NULL) prev->nextScope=symbol;  //link last element in tail
-	else   printf("prev is NULL\n");
+	else  // printf("prev is NULL\n");
 	return;	
 }
 
@@ -140,7 +140,7 @@ int  ScopeOfVariableExist(int scope){
 			Scope *d;
 			int flag=0;
 			if(HeadScope==NULL){      //list of scopes does not exist//
-				printf("HeadScope is NULL,list of scopes does not exist\n");
+		//		printf("HeadScope is NULL,list of scopes does not exist\n");
 				return 0;
 			}else{
 				 d=HeadScope;
@@ -181,7 +181,7 @@ void insert( SymbolType  type,char *name,int scope,int line)
 	
 	  		SymbolTableEntry* newnode=(SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
 	  		if(newnode==NULL){
-	  			printf("error in making of new entry of hash\n");
+	  	//		printf("error in making of new entry of hash\n");
 				return;	
 			}
 			
@@ -222,10 +222,10 @@ void display()
     int i;
     for(i=0;i<MAX_TABLE;i++)
           {
-           printf("\nentries at index %d\n",i);
+       //    printf("\nentries at index %d\n",i);
                if(Hash[i] == NULL)
                {
-               printf("No Hash Entry");
+         //      printf("No Hash Entry");
                }
                else
                {
@@ -320,11 +320,11 @@ void Hide(int scope)
 		  ptr2=ptr2->nextScope;
 		}
     }else{
-    	printf("Error:cant find scope list for hiding\n");
+    //	printf("Error:cant find scope list for hiding\n");
 	}
     
  }else{
-  	printf("Error:cant use hide for scope zero\n");
+  //	printf("Error:cant use hide for scope zero\n");
  }
 
  return ;
@@ -502,7 +502,7 @@ void EnterScopeList2(int scope,SymbolTableEntry *symbol){
 void  MakeNewScope2(int scope,SymbolTableEntry *symbol){
  		Scope* newnode=(Scope *)malloc(sizeof(Scope));
  		if(newnode==NULL) {
- 			printf("error in making of new entry of scope list\n");
+ 		//	printf("error in making of new entry of scope list\n");
  			return;
 		 }
 		 
@@ -538,7 +538,7 @@ int  ScopeOfVariableExist2(int scope){
 			Scope *d;
 			int flag=0;
 			if(HeadScope2==NULL){      //list of scopes does not exist//
-				printf("HeadScope2 is NULL,list of scopes does not exist\n");
+			//	printf("HeadScope2 is NULL,list of scopes does not exist\n");
 				return 0;
 			}else{
 				 d=HeadScope2;
@@ -657,7 +657,7 @@ void LookUpVariable(int scope,char *name,int line)
 		}
 		
 		if(	flag==1) {
-			printf("ENA DIO\n");
+		//	printf("ENA DIO\n");
 			break;
 		}
 		else {
@@ -782,7 +782,7 @@ int IsFunction(int scope,char *name,int line)
 		}
 		
 		if(	flag==1) {
-			printf("ENA DIO\n");
+			//printf("ENA DIO\n");
 			break;
 		}
 		else {
