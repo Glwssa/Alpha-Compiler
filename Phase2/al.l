@@ -211,7 +211,7 @@ OTHER4  .
 
 
 {NUMBER_INT}     {++count;  yylval.intVal=atoi(yytext); insertNode(yylineno,NULL,yytext,2); return NUMBER; }
-{NUMBER_REAL}     {++count;  yylval.doubleVal=atof(yytext)	insertNode(yylineno,NULL,yytext,3); return NUMBER;}
+{NUMBER_REAL}     {++count;  yylval.doubleVal=atof(yytext);	insertNode(yylineno,NULL,yytext,3); return NUMBER;}
 
 {STRING}     {
 
