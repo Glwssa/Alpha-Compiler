@@ -1,5 +1,6 @@
 %{
 #include "Table.h"
+#include "P3.h"
 
 int yyerror (char* yaccProvidedMessage);
 int yylex(void);
@@ -196,7 +197,7 @@ assignexpr:lvalue EQUAL_OP expr{
 
       if(IsFunctionLocal(scope,$1,yylineno)==1&&lock1==1){
           printf("\033[0;31m");
-			    printf("Error(%d)	[Variable] (Assignation to function:%s)\n",yylineno,$1); 
+			    printf("Error(%d)	[Variable] (Assignation(local) to function:%s)\n",yylineno,$1); 
 			    printf("\033[0m"); 
       }
 
@@ -334,7 +335,7 @@ int main(int argc,char** argv)
     yyparse();
    // display();
     PrintScopes();
-    
+    MakeQuadTable();
     return 0;
 }
 

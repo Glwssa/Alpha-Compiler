@@ -1,13 +1,14 @@
 %{
-#include "Table.h"
+
+#include "P3.h"
 
 int yyerror (char* yaccProvidedMessage);
 int yylex(void);
-extern int yylineno;
+
 	extern char* yytext;
 	extern FILE* yyin;
 	extern FILE* yyout;
-int scope=0;
+
 int pnum=0;
 int namef=0;
 int FlagScopeFormal=0;
@@ -15,6 +16,8 @@ char *IDV;
 int flagMemberLvalue=0;
 int lock1=0;
 int lock2=0;
+struct Stack *scopeoffsetstack; 
+  
 %}
 
 %start program
@@ -85,6 +88,9 @@ int lock2=0;
 int intVal;
 double doubleVal;
 char*  strVal;
+struct  SymbolTableEntry *sym;
+struct expr *expr;
+unsigned un;
 }
 
 %right EQUAL_OP
@@ -99,13 +105,30 @@ char*  strVal;
 %left  LEFT_ARRAY  RIGHT_ARRAY
 %left  LEFT_PARENTHESIS  RIGHT_PARENTHESIS
 
-%type <strVal> lvalue
+%type <expr> lvalue
+%type <strVal> funcname
+%type <sym> funcprefix
+%type <sym> funcdef
+%type <un> funcbody
+%type <expr> member
+%type <expr> primary
+%type <expr> assignexpr
+%type <expr> call
+%type <expr> term
+%type <expr> objectdef
+%type <expr> const
+%type <expr> tableitem
+%type <expr> expr
 
 
 %%
 
-program: stmts stmt {printf("(%d)(program->stmts stmt)\n",++pnum);}
-	    | {printf("(%d)(program->   )\n",++pnum);}
+program: stmts stmt {
+       
+        printf("(%d)(program->stmts stmt)\n",++pnum);}
+	    | {
+        
+        printf("(%d)(program->   )\n",++pnum);}
 	    ;
 	
 stmts :stmts stmt{printf("(%d)(stmts->stmts stmt)\n",++pnum);}
@@ -113,7 +136,7 @@ stmts :stmts stmt{printf("(%d)(stmts->stmts stmt)\n",++pnum);}
        ;
 
 
-stmt : expr SEMICOLON {printf("(%d)(stmt->expr;)\n",++pnum);}
+stmt : expr SEMICOLON {  resettmp(); printf("(%d)(stmt->expr;)\n",++pnum);}
        |ifstmt {printf("(%d)(stmt->ifstmt\n)",++pnum);}    
        |whilestmt {printf("(%d)(stmt->whilestmt\n,++pnum)");}
        |forstmt   {printf("(%d)(stmt->forstmt)\n",++pnum);}
@@ -139,7 +162,13 @@ expr	:assignexpr  {printf("(%d)(expr->assignexpr)\n",++pnum );}
     	 |expr COMP_NOT_EQUAL_OP expr {printf("(%d)(expr->expr!=expr)\n",++pnum);}
     	 |expr AND_ST expr {printf("(%d)(expr->expr and expr)\n",++pnum);}
     	 |expr OR_ST expr {printf("(%d)(expr->expr or expr)\n",++pnum);}
-	    |term {printf("(%d)(expr->term)\n",++pnum);}
+	    |term {
+        if($term!=NULL){
+             $expr=$term;
+        }else{
+          printf("expr:term,term is NULL\n");
+        }
+        printf("(%d)(expr->term)\n",++pnum);}
 	    ;
 
 term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{printf("(%d)( term->(expr) )\n",++pnum);}
@@ -147,7 +176,7 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{printf("(%d)( term->(expr) )\n",+
        | NOT_ST expr	{printf("(%d)(term->!expr)\n",++pnum);}
     
        | INCREMENT_OP lvalue  { 
-         if(IsFunction(scope,$2,yylineno)==1){
+         if(IsFunction(scope,$lvalue->sym->name,yylineno)==1){
           printf("\033[0;31m");
 			 printf("Error(%d)	[Variable] (function name with  operator) \"++%s\"\n",yylineno,$2); 
 			 printf("\033[0m");
@@ -156,7 +185,7 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{printf("(%d)( term->(expr) )\n",+
          printf("(%d)(term-> ++lvalue)\n",++pnum);}
    
        | lvalue INCREMENT_OP  {
-         if(IsFunction(scope,$1,yylineno)==1){
+         if(IsFunction(scope,$lvalue->sym->name,yylineno)==1){
           printf("\033[0;31m");
 			 printf("Error(%d)	[Variable] (function name with operator) \"%s++\"\n",yylineno,$1); 
 			 printf("\033[0m");
@@ -165,7 +194,7 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{printf("(%d)( term->(expr) )\n",+
          printf("(%d)(term-> lvalue++)\n",++pnum);}
    
       | DICREMENT_OP lvalue  {
-        if(IsFunction(scope,$2,yylineno)==1){
+        if(IsFunction(scope,$lvalue->sym->name,yylineno)==1){
           printf("\033[0;31m");
 			 printf("Error(%d)	[Variable] (function name with operator) \"--%s\"\n",yylineno,$2); 
 			 printf("\033[0m");
@@ -173,70 +202,177 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{printf("(%d)( term->(expr) )\n",+
         printf("(%d)(term-> --lvalue)\n",++pnum);}
     
       | lvalue DICREMENT_OP {
-       if(IsFunction(scope,$1,yylineno)==1){
+       if(IsFunction(scope,$lvalue->sym->name,yylineno)==1){
           printf("\033[0;31m");
 			 printf("Error(%d)	[Variable] (function name with operator) \"%s--\"\n",yylineno,$1); 
 			 printf("\033[0m");
        }
        printf("(%d)(term-> lvalue--)\n",++pnum);}
 
-      | primary  {printf("(%d)(term->primary)\n",++pnum);}
+      | primary  {
+        if($primary!=NULL){
+             $term=$primary;
+        }else{
+          printf("term:primary,primary is NULL\n");
+        }
+       
+        printf("(%d)(term->primary)\n",++pnum);}
       ;
 
 assignexpr:lvalue EQUAL_OP expr{
   
-    
-    if($1!=NULL){
+    //newtmp();
+    if($lvalue!=NULL){
+      if($lvalue->sym->name!=NULL){
       
-      if(IsFunction(scope,$1,yylineno)==1&&lock1!=1) {
+      if(IsFunction(scope,$lvalue->sym->name,yylineno)==1&&lock1!=1&&lock2!=1) {
           printf("\033[0;31m");
 			    printf("Error(%d)	[Variable] (Assignation to function:%s)\n",yylineno,$1); 
 			    printf("\033[0m");  
       }
 
-      if(IsFunctionLocal(scope,$1,yylineno)==1&&lock1==1){
+      if(IsFunctionLocal(scope,$lvalue->sym->name,yylineno)==1&&lock1==1&&lock2!=1){
           printf("\033[0;31m");
-			    printf("Error(%d)	[Variable] (Assignation to function:%s)\n",yylineno,$1); 
+			    printf("Error(%d)	[Variable] (Assignation(local) to function:%s)\n",yylineno,$1); 
+			    printf("\033[0m"); 
+      }
+
+      if(IsFunctionLocal(0,$lvalue->sym->name,yylineno)==1&&lock2==1&&lock1!=1){
+          printf("\033[0;31m");
+			    printf("Error(%d)	[Variable] (Assignation(local) to function:%s)\n",yylineno,$1); 
 			    printf("\033[0m"); 
       }
 
      }
-   // flagMemberLvalue=0;
-   // printf("S1:%s",$1);
+  
+     if($expr!=NULL){
+        if($lvalue->type==1){
+             
+             emit(tablesetelem,$expr,$lvalue,$lvalue->index);
+
+             $assignexpr = emit_iftableitem ($lvalue); 
+             if($assignexpr!=NULL){
+                  $assignexpr->type = assignexpr_e;
+             }else{
+               printf("$assignexpr is NULL\n");
+             }
+        }else{
+              
+            emit(assign,$lvalue,$expr,(expr*)0);
+            $assignexpr=newexpr(assignexpr_e);
+            if($assignexpr!=NULL){
+                    $assignexpr->sym=newtmp();
+                    emit(assign, $assignexpr,$lvalue,(expr*)0);
+            }else{
+              printf("assignexpr is NULL\n");
+            }
+        }
+
+
+     }else{
+        printf("assignexpr:lvalue EQUAL_OP expr,expr is NULL\n");
+     }
+
+    }else{
+       printf("assignexpr:lvalue EQUAL_OP expr lvalue is NULL\n");
+
+    }
+   
+  
     lock1=0;
     lock2=0;
     printf("(%d)(assignexpr->lvalue=expr)\n",++pnum);}
     
 	;
 
-primary: lvalue {printf("(%d)(primary->lvalue)\n",++pnum);}
+primary: lvalue {
+      $primary = emit_iftableitem($lvalue);
+      printf("(%d)(primary->lvalue)\n",++pnum);}
 		| call  {printf("(%d)(primary->call)\n",++pnum);}
 		| objectdef {printf("(%d)(primary->objectdef)\n",++pnum);}
 		| LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS {printf("(%d)(primary->(funcdef) )\n",++pnum);}
 		| const	{printf("(%d)(primary->const)\n",++pnum);}
 		;
 
-lvalue:	ID {LookUpVariable(scope,$1,yylineno); printf("(%d)(lvalue->ID:%s)\n",++pnum,$1);  
-        $$=$1; 
+lvalue:	ID {SymbolTableEntry *sym=LookUpVariable(scope,$1,yylineno);
+        if(sym!=NULL){
+            $lvalue=lvalue_expr(sym);
+        }else{
+          $lvalue=NULL;
+          printf("LookUpVariable returns NULL\n");
+        }
+       printf("(%d)(lvalue->ID:%s)\n",++pnum,$1);  
+         
       }
-		| LOCAL_ST ID {	LookUpLocal($2,scope,yylineno);
-        $$=$2; 
+		| LOCAL_ST ID {SymbolTableEntry *sym=LookUpLocal($2,scope,yylineno);
+        if(sym!=NULL){
+              $lvalue=lvalue_expr(sym);
+        }else{
+           $lvalue=NULL;
+           printf("LookUpLocal returns NULL\n");
+        }
+       
         lock1=1;
 		  printf("(%d)(lvalue->local ID)\n",++pnum);}
-		| DOUBLE_COLON ID {LookUpGlobal($2,yylineno);
-        $$=$2; 
+		| DOUBLE_COLON ID {SymbolTableEntry *sym=LookUpGlobal($2,yylineno);
+       if(sym!=NULL){
+              $lvalue=lvalue_expr(sym);
+        }else{
+           $lvalue=NULL;
+           printf("LookUpGlobal returns NULL\n");
+        }
+
+       
         lock2=1;
      printf("(%d)(lvalue->:: ID)\n",++pnum);}
 		| member{
       
       printf("(%d)(lvalue->member)\n",++pnum);}
 		;
-		
-member:lvalue FULL_STOP ID {
+
+
+lvalue: tableitem {
+          if($tableitem!=NULL){
+                $lvalue= $tableitem;
+          }else{
+                printf("lvalue: tableitem  NULL\n");
+          }
+          printf("(%d)(lvalue->tableitem)\n",++pnum);
+          }
+          ;
+tableitem :lvalue FULL_STOP ID
+         { 
+           $tableitem = member_item($lvalue, $ID); 
+           printf("(%d)(tableitem->lvalue.ID)\n",++pnum);
+         }
+         ;
+
+tableitem:lvalue LEFT_ARRAY expr RIGHT_ARRAY{
+            if($lvalue!=NULL){
+                $lvalue = emit_iftableitem($lvalue);
+                $tableitem = newexpr(tableitem_e); 
+                if( $tableitem!=NULL && $expr!=NULL){
+                 $tableitem->sym = $lvalue->sym;
+                 $tableitem->index = $expr;
+                }else{
+                  printf("$tableitem is NULL \n");
+                }
+                
+            }else{
+              printf("$lvalue is NULL\n");
+            }
+
+            printf("(%d)(member->lvalue[expr])\n",++pnum);
+          }
+          ;
+
+
+
+member://lvalue FULL_STOP ID {
        // flagMemberLvalue=1;
-        printf("(%d)(member->lvalue.ID)\n",++pnum);}
-	  | lvalue LEFT_ARRAY expr RIGHT_ARRAY {printf("(%d)(member->lvalue[expr])\n",++pnum);}
-	  | call FULL_STOP ID	{printf("(%d)(member->call.ID)\n",++pnum);}
+      //  printf("(%d)(member->lvalue.ID)\n",++pnum);}
+	  //lvalue LEFT_ARRAY expr RIGHT_ARRAY {printf("(%d)(member->lvalue[expr])\n",++pnum);}
+     call FULL_STOP ID	{printf("(%d)(member->call.ID)\n",++pnum);}
       	  | call LEFT_ARRAY expr RIGHT_ARRAY 	{printf("(%d)(member->call[expr])\n",++pnum);}
           ;
 
@@ -278,9 +414,71 @@ indexedelem :LEFT_CBRACKET expr COLON expr RIGHT_CBRACKET {printf("(%d)(indexede
 block:LEFT_CBRACKET { ++scope;}  stmts RIGHT_CBRACKET {Hide(scope--); printf("(%d)(block->{stmts})\n",++pnum);}
      ;
 
-funcdef:  FUNC_ST {insert(3,MakeFunctionName(namef++),scope,yylineno);} LEFT_PARENTHESIS {++scope;} idlist RIGHT_PARENTHESIS {scope--;} block {printf("(%d)(funcdef->function (idlist) block)\n",++pnum);}
-       |  FUNC_ST  ID {LookUpFunction(scope,$2,yylineno);} LEFT_PARENTHESIS {++scope;} idlist  RIGHT_PARENTHESIS  {scope--;}block { printf("(%d)(funcdef->function (idlist) block )\n",++pnum);}
-       ;
+
+funcbody:block{
+   $funcbody=currentscopeoffset();
+   exitscopespace();
+   printf("(%d)(funcbody->block )\n",++pnum);
+}
+;
+
+funcargs:LEFT_PARENTHESIS{++scope; } 
+  idlist RIGHT_PARENTHESIS{
+  scope--;
+  enterscopespace();
+  resetfunctionLocaloffset();
+  printf("(%d)(funcargs->LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS)\n",++pnum);
+}
+;
+
+funcname:ID{
+   $funcname=$1;
+  
+   printf("(%d)(funcname->ID )\n",++pnum);
+}
+;
+
+funcname:  {
+   $funcname=MakeFunctionName(namef++);
+   printf("(%d)(funcname-> )\n",++pnum);
+}
+;
+
+funcprefix:FUNC_ST funcname{
+    $funcprefix=LookUpFunction(scope,$funcname,yylineno);
+    
+    if( $funcprefix!=NULL){
+        $funcprefix->iadress = nextquadlabel();
+        emit(funcstart,function_def($funcprefix), NULL, NULL); 
+    }else{
+      printf("LookUpFunction returns NULL\n");
+    }
+    push(scopeoffsetstack,currentscopeoffset());
+    enterscopespace();
+    resetformalArgoffset();
+    printf("(%d)(funcprefix->FUNC_ST funcname )\n",++pnum);
+}
+;
+
+
+funcdef:funcprefix funcargs funcbody{
+     exitscopespace();
+     $funcdef->totalLocals=$funcbody;
+
+     int offset = pop(scopeoffsetstack);
+     restorecurrscopeoffset(offset); 
+     if($funcprefix!=NULL){
+         $funcdef= $funcprefix;  
+     }else{
+       printf("$funcprefix is NULL in :funcdef:funcprefix funcargs funcbody\n");
+     }
+    
+     emit(funcend,function_def($funcprefix), NULL, NULL);
+
+     printf("(%d)(funcdef->funcprefix funcargs funcbody )\n",++pnum);
+}
+;
+
 
 const:NUMBER{printf("(%d)(const->NUMBER)\n",++pnum);}
      |STRING {printf("(%d)(const->STRING)\n",++pnum);}
@@ -331,10 +529,14 @@ int main(int argc,char** argv)
 
     printf("--------------------            Syntax Analysis         --------------------\n");
     InitHash();
+    scopeoffsetstack=createStack(1000);
     yyparse();
    // display();
+  //  MakeQuadTable();
+   // SymbolTableEntry *a=newtmp();
+   // SymbolTableEntry *a2=newtmp();
     PrintScopes();
-    
+     PrintQuads();
     return 0;
 }
 

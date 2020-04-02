@@ -1,0 +1,167 @@
+#include "Table.h"
+
+
+
+
+Scope *HeadScope2=NULL;
+
+SymbolTableEntry *Hash2[MAX_TABLE]={NULL};
+SymbolTableEntry *c2={NULL};
+
+void  MakeNewScope2(int scope,SymbolTableEntry *symbol){
+ 		Scope* newnode=(Scope *)malloc(sizeof(Scope));
+ 		if(newnode==NULL) {
+ 			printf("error in making of new entry of scope list\n");
+ 			return;
+		 }
+		 
+ 		newnode->scope=scope;
+		newnode->symbol=symbol;     //malloc for struct scope
+		newnode->next=NULL;			//
+
+		if(scope==0){
+		    	HeadScope2=newnode; //HeadScope is pointer in first element of scope list
+		}else{
+			 Scope *d;
+		    d=HeadScope2;
+		    while(d->next != NULL)
+        		{
+           			
+					   d=d->next;
+           			
+        		}
+        	d->next=newnode;	
+		}
+		   
+}
+
+
+void PrintScopes2(){
+
+	Scope *ptr=HeadScope2;
+	SymbolTableEntry *ptr2;
+
+	while(ptr!=NULL){
+	    ptr2=ptr->symbol;
+	    printf("-----------	Scope %d ----------\n",ptr->scope);
+		while(ptr2!=NULL){
+				
+				printf("\"%s\"	[%s] (line %d) (scope %d) (%s)",ptr2->name,GetType(ptr2->type),ptr2->line,ptr2->scope,IsActive(ptr2->isActive));
+				printf("\n");
+			ptr2=ptr2->nextScope;   //traversal of scope list
+		}
+		ptr=ptr->next;
+	}
+	
+}
+
+void EnterScopeList2(int scope,SymbolTableEntry *symbol){
+	Scope *ptr=HeadScope2;
+	while(ptr!=NULL){
+	    if(ptr->scope==scope) {
+	         symbol->nextScope=ptr->symbol;
+		     ptr->symbol=symbol;
+	    	break;
+		}
+		ptr=ptr->next;
+	}
+	
+	
+	return;	
+}
+
+
+int  ScopeOfVariableExist2(int scope){
+			Scope *d;
+			int flag=0;
+			if(HeadScope2==NULL){      //list of scopes does not exist//
+				printf("HeadScope2 is NULL,list of scopes does not exist\n");
+				return 0;
+			}else{
+				 d=HeadScope2;
+		    	 while(d!= NULL)
+        		 {
+        			if(d->scope==scope){
+        				flag=1;   //scope we looking for exist!!
+        				break;
+					}
+           			d=d->next;
+        		 }
+        		 
+        		 if(flag==1){
+        		     return 1; //scope struct exist
+				 }else{
+				 	return 0;  //scope struct does not exist
+				 }   	    
+			}	
+}
+
+
+
+void MakeTableWithElementsReverse(){
+	
+	
+	Scope *ptr=HeadScope;
+	SymbolTableEntry *ptr2;
+
+	while(ptr!=NULL){
+	    ptr2=ptr->symbol;
+	 //   printf("-----------	Scope %d ----------\n",ptr->scope);
+		while(ptr2!=NULL){
+			
+			
+			
+	  		SymbolTableEntry* newnode=(SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
+	  		if(newnode==NULL){
+	  			printf("error in making of new entry of hash\n");
+				return;	
+			}
+			
+            newnode->type=ptr2->type;
+	  		newnode->isActive=1;
+	  		newnode->next=NULL;
+	  		newnode->args=NULL;
+	  		newnode->line=ptr2->line;
+	  		newnode->name=strdup(ptr2->name);
+	  		newnode->scope=ptr2->scope;
+	  		newnode->nextScope=NULL;
+	  
+	        int i=hash(ptr2->name);
+	   		if(Hash2[i] == NULL){		//if pointer in first element exist//
+        		Hash2[i] = newnode;
+		
+   	    	}else{
+        		c=Hash2[i];
+        		while(c->next != NULL) //if pointer in first element of hash does not exist//
+        		{
+           			c=c->next;
+        		}
+        		c->next=newnode;		//chaining
+    		}
+    		
+    		if(ScopeOfVariableExist2(ptr2->scope)==0){  //if returns 0,scope of variable does not exist//
+    			MakeNewScope2(ptr2->scope,newnode);
+			}else{
+				EnterScopeList2(ptr2->scope,newnode);   //if returns 1,struct of scope exist
+			}
+			
+	
+			
+			ptr2=ptr2->nextScope;   //traversal of scope list
+		}
+		ptr=ptr->next;
+	}
+	
+	printf("--------BLUEFACE BABY-------\n");
+	//PrintScopes2();
+	
+	
+}
+
+
+
+
+
+
+
+

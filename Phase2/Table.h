@@ -804,5 +804,58 @@ int IsFunction(int scope,char *name,int line)
     return;
 }
 
+int IsFunctionLocal(int scope,char *name,int line)
+{
+	MakeTableWithElementsReverse();   //make Global list reverse
+	
+    int scopeT=scope;
+	Scope *ptr=HeadScope2;
+	int functionFlag=0;
+	SymbolTableEntry* ptr2=NULL;
+	int flag=0;
+	while(scopeT>=0){
+		ptr=HeadScope2;				//head of the global table with reverse elements
+		while(ptr!=NULL){
+			if(ptr->scope==scopeT) break;
+			ptr=ptr->next;
+		}
+		
+		if(ptr!=NULL){
+			ptr2=ptr->symbol;
+			while(ptr2!=NULL){
+				if(strcmp(ptr2->name,name)==0&&(ptr2->isActive==1)&&(ptr2->type==3||ptr2->type==4)&&(ptr2->scope==scope))
+				{
+					 flag=1;
+					 break;	
+				}
+			
+			
+				ptr2=ptr2->nextScope;
+			}
+		}else{
+		//	printf("line(%d):LookUpVariable  [ptr==NULL]\n",line);
+		}
+		
+		if(	flag==1) {
+			//printf("ENA DIO\n");
+			break;
+		}
+		else {
+			
+		}
+		--scopeT;
+	}
+	
+		HeadScope2=NULL;
+	
+	if(flag==1 && ptr2!=NULL) {
 
+			return	1;
+		
+	}else{
+		
+		    return	0;
+	}
+    return;
+}
 
