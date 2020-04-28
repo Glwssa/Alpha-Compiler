@@ -17,10 +17,6 @@ int flagMemberLvalue=0;
 int lock1=0;
 int lock2=0;
 struct Stack *scopeoffsetstack; 
-struct Stack *loopcounterstack; 
-int funcounter=0;
-
-
 expr *ptrEx=NULL;
 expr *ptrElist=NULL;
 int flagElist;
@@ -104,9 +100,6 @@ struct  SymbolTableEntry *sym;
 struct expr *expr;
 unsigned un;
 struct call *callx;
-struct forpr *forpre;
-struct stmt_t *stmt_t;
-struct indext *indext;
 }
 
 %right EQUAL_OP
@@ -139,25 +132,6 @@ struct indext *indext;
 %type <callx> callsuffix
 %type <callx> normcall
 %type <callx> methodcall
-%type <intVal> ifprefix
-%type <intVal> elseprefix
-%type <expr> ifstmt1
-%type <expr> ifstmt2
-%type <intVal> whilestart
-%type <intVal> whilecond
-%type <intVal> M
-%type <intVal> N
-%type <forpre> forprefix
-%type <stmt_t> stmt
-%type <stmt_t> loopstmt
-%type <stmt_t> stmts
-%type <stmt_t> block
-%type <indext> indexedelems
-%type <indext>  indexedelem
-%type <indext>  indexed
-
-
-
 
 %%
 
@@ -169,24 +143,13 @@ program: stmts stmt {
         printf("(%d)(program->   )\n",++pnum);}
 	    ;
 	
-stmts :stmts stmt{
-          if($1==NULL&&$2!=NULL){
-              $$=$2;
-          }else if($1!=NULL&&$2!=NULL){
-              $$=make_stmt( );
-              $$->breakList = mergelist($1->breakList, $2->breakList);
-              $$->contList = mergelist($1->contList,$2->contList); 
-          }else{
-
-          }
-          printf("(%d)(stmts->stmts stmt)\n",++pnum);}
-       | {$$=NULL; printf("(%d)(stmts->    )\n",++pnum);}
+stmts :stmts stmt{printf("(%d)(stmts->stmts stmt)\n",++pnum);}
+       | {printf("(%d)(stmts->    )\n",++pnum);}
        ;
 
 
 stmt : expr SEMICOLON { 
-        /*
-         if(1==0){
+         if($expr!=NULL&&strcmp(GetTypeExpr($expr->type),"boolexpr_e")==0){
                 
                 emit(assign,$expr,newexpr_bool(1),NULL);
                 int curr=currquad();
@@ -201,55 +164,17 @@ stmt : expr SEMICOLON {
 
          }else{
              printf("error\n");
-         } */
-            resettmp(); $stmt=NULL;  printf("(%d)(stmt->expr;)\n",++pnum);}
-       |ifstmt1 { resettmp(); $stmt=NULL;    printf("(%d)(stmt->ifstmt1\n)",++pnum);}    
-       |ifstmt2 { resettmp();  $stmt=NULL;   printf("(%d)(stmt->ifstmt2\n)",++pnum);}   
-       |whilestmt { resettmp();  $stmt=NULL;  printf("(%d)(stmt->whilestmt\n,++pnum)");}
-       |forstmt   { resettmp();  $stmt=NULL;  printf("(%d)(stmt->forstmt)\n",++pnum);}
-       |returnstmt { resettmp();  $stmt=NULL; printf("(%d)(stmt->returnstmt)\n",++pnum);}
-      
-       |BREAK_ST SEMICOLON {
-          
-          resettmp();
-
-          if(loopcntr()>0){
-             $stmt=make_stmt( );
-             $stmt->breakList=newlist(nextquadlabel());
-             emit(jump,NULL,NULL,NULL);
-          }else{
-             printf("\033[0;31m");
-		      	 printf("Error(%d)	[Break not in loop] \n",yylineno); 
-		         printf("\033[0m");
-             $stmt=NULL;
-          }
-          
-        //  printf("break:%d,%d",loopcntr(),yylineno);
-          printf("(%d)(stmt->break;)\n",++pnum);}
-       
-       |CONTINUE_ST SEMICOLON {
-
-          resettmp();
-
-          if(loopcntr()>0){
-             $stmt=make_stmt( );
-             $stmt->contList=newlist(nextquadlabel());
-             emit(jump,NULL,NULL,NULL);
-          }else{
-             printf("\033[0;31m");
-		      	 printf("Error(%d)	[Continue not in loop] \n",yylineno); 
-		         printf("\033[0m");
-             $stmt=NULL;
-          }
-        
-          //printf("continue:%d,%d",loopcntr(),yylineno);
-          printf("(%d)(stmt->continue;)\n",++pnum);}
-       |block {
-          resettmp();
-          $stmt=$block;
-          printf("(%d)(stmt->block)\n",++pnum);}
-       |funcdef { resettmp();   printf("(%d)(stmt->funcdef)\n",++pnum);  $stmt=NULL;}
-       |SEMICOLON { resettmp(); printf("(%d)(stmt->;)\n",++pnum);  $stmt=NULL;}
+         }
+            resettmp(); printf("(%d)(stmt->expr;)\n",++pnum);}
+       |ifstmt { resettmp();    printf("(%d)(stmt->ifstmt\n)",++pnum);}    
+       |whilestmt { resettmp(); printf("(%d)(stmt->whilestmt\n,++pnum)");}
+       |forstmt   { resettmp(); printf("(%d)(stmt->forstmt)\n",++pnum);}
+       |returnstmt { resettmp(); printf("(%d)(stmt->returnstmt)\n",++pnum);}
+       |BREAK_ST SEMICOLON { resettmp(); printf("(%d)(stmt->break;)\n",++pnum);}
+       |CONTINUE_ST SEMICOLON { resettmp(); printf("(%d)(stmt->continue;)\n",++pnum);}
+       |block { resettmp(); printf("(%d)(stmt->block)\n",++pnum);}
+       |funcdef { resettmp();   printf("(%d)(stmt->funcdef)\n",++pnum);}
+       |SEMICOLON { resettmp(); printf("(%d)(stmt->;)\n",++pnum);}
        ;
 expr	:assignexpr 
        {
@@ -353,128 +278,167 @@ expr	:assignexpr
             }
         printf("(%d)(expr->expr mod expr)\n",++pnum);}
 	    |expr COMP_BIGGER_OP expr {
-            if($1!=NULL&&$3!=NULL){
+         // if($1!=NULL&&$3!=NULL&&CheckTypeArithmExpr($1)==0&&CheckTypeArithmExpr($3)==0){
                $$=newexpr(boolexpr_e);
-              // if($$!=NULL){
-              //     $$=TmpRec($$,$1,$3);
-                //}
-               $$->sym=newtmp();
+               if($$!=NULL){
+                   $$=TmpRec($$,$1,$3);
+               }
                emit(if_greater,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+                $$->quadF=currquad();
+               $$->truelist=makelist(currquad());
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falselist=makelist(currquad());
 
-            }else{
-                 $$=NULL;
+       //   }else{
+        //         $$=NULL;
                  printf("NULL\n");
-            }
+         // }
           printf("(%d)(expr->expr>expr)\n",++pnum);}
 	    |expr COMP_BIGGER_EQUAL_OP expr {
-            if($1!=NULL&&$3!=NULL){
+     //    if($1!=NULL&&$3!=NULL&&CheckTypeArithmExpr($1)==0&&CheckTypeArithmExpr($3)==0){
                $$=newexpr(boolexpr_e);
-              // if($$!=NULL){
-               //    $$=TmpRec($$,$1,$3);
-               //}
-               $$->sym=newtmp();
+               if($$!=NULL){
+                   $$=TmpRec($$,$1,$3);
+               }
                emit(if_greatereq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+                $$->quadF=currquad();
+               $$->truelist=makelist(currquad());
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falselist=makelist(currquad());
 
-            }else{
-                 $$=NULL;
-                 printf("NULL\n");
-            }
+   //       }else{
+     //            $$=NULL;
+       //          printf("NULL\n");
+         // }
            
           printf("(%d)(expr->expr>=expr)\n",++pnum);}
 	    |expr COMP_LESS_OP expr {
-            if($1!=NULL&&$3!=NULL){
+       //    if($1!=NULL&&$3!=NULL&&CheckTypeArithmExpr($1)==0&&CheckTypeArithmExpr($3)==0){
                $$=newexpr(boolexpr_e);
-              // if($$!=NULL){
-               //    $$=TmpRec($$,$1,$3);
-               //}
-                 $$->sym=newtmp();
+               if($$!=NULL){
+                   $$=TmpRec($$,$1,$3);
+               }
                emit(if_less,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+               $$->quadF=currquad();
+               $$->truelist=makelist(currquad());
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falselist=makelist(currquad());
+              
 
-            }else{
-                 $$=NULL;
+         // }else{
+           //      $$=NULL;
                  printf("NULL\n");
-            }
-           
+          //}
           printf("(%d)(expr->expr<expr)\n",++pnum);}
     	 |expr COMP_LESS_EQUAL_OP expr {
-            if($1!=NULL&&$3!=NULL){
+           // if($1!=NULL&&$3!=NULL&&CheckTypeArithmExpr($1)==0&&CheckTypeArithmExpr($3)==0){
                $$=newexpr(boolexpr_e);
-              // if($$!=NULL){
-                //   $$=TmpRec($$,$1,$3);
-               //}
-               $$->sym=newtmp();
+               if($$!=NULL){
+                   $$=TmpRec($$,$1,$3);
+               }
                emit(if_lesseq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+                $$->quadF=currquad();
+               $$->truelist=makelist(currquad());
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falselist=makelist(currquad());
 
-            }else{
-                 $$=NULL;
-                 printf("NULL\n");
-            }
+          //}else{
+            //     $$=NULL;
+              //   printf("NULL\n");
+          //}
            printf("(%d)(expr->expr<=expr)\n",++pnum);}
      	 |expr COMP_EQUAL_OP expr {
-           if($1!=NULL&&$3!=NULL){
+         //   if($1!=NULL&&$3!=NULL&&CheckTypeArithmExpr($1)==0&&CheckTypeArithmExpr($3)==0){
                $$=newexpr(boolexpr_e);
-              // if($$!=NULL){
-                //   $$=TmpRec($$,$1,$3);
-               //}
-               $$->sym=newtmp();
+               if($$!=NULL){
+                   $$=TmpRec($$,$1,$3);
+               }
                emit(if_eq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+                $$->quadF=currquad();
+               $$->truelist=makelist(currquad());
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falselist=makelist(currquad());
 
-            }else{
-                 $$=NULL;
-                 printf("NULL\n");
-            }
+          //}else{
+            //     $$=NULL;
+              //   printf("NULL\n");
+          //}
             printf("(%d)(expr->expr==expr)\n",++pnum);}
     	 |expr COMP_NOT_EQUAL_OP expr {
-          if($1!=NULL&&$3!=NULL){
+        //   if($1!=NULL&&$3!=NULL&&CheckTypeArithmExpr($1)==0&&CheckTypeArithmExpr($3)==0){
                $$=newexpr(boolexpr_e);
-               //if($$!=NULL){
-                 //  $$=TmpRec($$,$1,$3);
-               //}
-               $$->sym=newtmp();
+                if($$!=NULL){
+                   $$=TmpRec($$,$1,$3);
+                } 
                emit(if_noteq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+                $$->quadF=currquad();
+               $$->truelist=makelist(currquad());
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falselist=makelist(currquad());
 
-            }else{
-                 $$=NULL;
-                 printf("NULL\n");
-            }
+          //}else{
+            //     $$=NULL;
+              //   printf("NULL\n");
+          //}
          printf("(%d)(expr->expr!=expr)\n",++pnum);}
     	 |expr AND_ST expr {
             if($1!=NULL&&$3!=NULL){
+               int flag1,flag2,glag3,flag4=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }   
-               emit(and,$$,$1,$3);
+               if($1->type!=5){  //boolexpr_e
+                    emit(if_eq,NULL,$1,newexpr_bool(1));
+                    
+                    $1->truelist=makelist(currquad());
+                    emit(jump,NULL,NULL,NULL);
+                    $1->falselist=makelist(currquad());
+                    flag1=1;
+               }else{
+                    flag1=0;
+               }
+              
+              
+               if($3->type!=5){
+                    emit(if_eq,NULL,$3,newexpr_bool(1));
+                    $3->truelist=makelist(currquad());
+                    emit(jump,NULL,NULL,NULL);
+                    $3->falselist=makelist(currquad());
+                    flag2=1;
+               }else{
+                    flag2=0;
+               }
+               
+               if(flag1==0&&flag2==0){
+                    patchlist($1->truelist,$3->quadF);
+                    $$->quadF=$1->quadF;
+               } 
+
+               if(flag1==1&&flag2==0){
+                    patchlist($3->truelist,currquad()-1);
+                    $$->quadF=$3->quadF;
+               }
+
+
+               if(flag1==0&&flag2==1){
+                    patchlist($1->truelist,currquad()-1);
+                    $$->quadF=$1->quadF;
+               }
+
+          
+
+          //     if(flag1==0&&flag2==1) patchlist($1->truelist,currquad()-1);
+           //    if(flag1==1&&flag2==0) patchlist($3->truelist,currquad()-1);
+               if(flag1==1&&flag2==1) patchlist($1->truelist,currquad()-1);
+               
+
+               if(flag1==1&&flag2==0)  $$->truelist=$1->truelist;
+               else $$->truelist=$3->truelist;
+               $$->falselist=mergelist($1->falselist,$3->falselist);
+              
+               
+
             }else{
                  $$=NULL;
                  printf("NULL\n");
@@ -482,19 +446,70 @@ expr	:assignexpr
            printf("(%d)(expr->expr and expr)\n",++pnum);}
     	 |expr OR_ST expr {
             if($1!=NULL&&$3!=NULL){
+               int flag1,flag2,glag3,flag4=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }   
-               emit(or,$$,$1,$3);
+               if($1->type!=5){  //boolexpr_e
+                    emit(if_eq,NULL,$1,newexpr_bool(1));
+                    $1->truelist=makelist(currquad());
+                    emit(jump,NULL,NULL,NULL);
+                    $1->falselist=makelist(currquad());
+                    flag1=1;
+               }else{
+                    flag1=0;
+               }
+              
+              
+               if($3->type!=5){
+                    emit(if_eq,NULL,$3,newexpr_bool(1));
+                    $3->truelist=makelist(currquad());
+                    emit(jump,NULL,NULL,NULL);
+                    $3->falselist=makelist(currquad());
+                    flag2=1;
+               }else{
+                    flag2=0;
+               }
+               
+               if(flag1==0&&flag2==0){
+                    patchlist($1->falselist,$3->quadF);
+                    $$->quadF=$1->quadF;
+               }
+
+               
+               if(flag1==1&&flag2==0){
+                    patchlist($3->falselist,currquad()-1);
+                    $$->quadF=$3->quadF;
+               }
+
+
+               if(flag1==0&&flag2==1){
+                    patchlist($1->falselist,currquad()-1);
+                    $$->quadF=$1->quadF;
+               }
+
+
+     
+              // if(flag1==0&&flag2==0) patchlist($1->falselist,currquad()-1);
+              // if(flag1==0&&flag2==1) patchlist($1->falselist,currquad()-1);
+             //  if(flag1==1&&flag2==0) patchlist($3->falselist,currquad()-1);
+               if(flag1==1&&flag2==1) patchlist($1->falselist,currquad()-1);
+               
+               $$->truelist=mergelist($1->truelist,$3->truelist);
+               if(flag1==1&&flag2==0)  $$->falselist=$1->falselist;
+               else $$->falselist=$3->falselist;
+              
+              
+
             }else{
                  $$=NULL;
                  printf("NULL\n");
             }
            printf("(%d)(expr->expr or expr)\n",++pnum);}
 	    |term {
-            $expr=$term;
-            printf("(%d)(expr->term)\n",++pnum);}
+        $expr=$term;
+        printf("(%d)(expr->term)\n",++pnum);}
 	    ;
 
 term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
@@ -522,7 +537,7 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
                                 $$->sym=newtmp();
                            }
                }   
-             /*  int var1,var2;
+               int var1,var2;
                if($expr->type!=5)
                {
                      emit(if_eq,NULL,$expr,newexpr_bool(1));
@@ -541,11 +556,9 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
                      $$->truelist=var1;
                      $$->falselist=var2; 
                      $$->quadF=$expr->quadF;
-               }*/
-
-                    emit(not,$$,$expr, NULL);
+               }
                      
-                  
+                     printf("AAAAAXXXX:T%d,F:%d", $$->truelist, $$->falselist);
            }else{
                printf("Error\n");
            }
@@ -744,9 +757,7 @@ primary: lvalue {
 		| call  {
          $primary=$call;
          printf("(%d)(primary->call)\n",++pnum);}
-		| objectdef {
-         $primary=$objectdef;
-         printf("(%d)(primary->objectdef)\n",++pnum);}
+		| objectdef {printf("(%d)(primary->objectdef)\n",++pnum);}
 		| LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS {
          $primary = newexpr(programfunc_e);
          $primary->sym = $funcdef;
@@ -936,69 +947,25 @@ exprs:COMMA expr {
 	   |  {printf("(%d)(exprs->   )\n",++pnum);}
 	   ;
 
-objectdef:LEFT_ARRAY elist RIGHT_ARRAY {
-           
-            printElist($elist);
-            expr *t=newexpr(newtable_e);
-            t->sym=newtmp();
-            emit(tablecreate,t,NULL,NULL);
-            int i=0;
-            expr *curr=$elist;
-            while(curr!=NULL){
-               emit(tablesetelem,t,newexpr_num_int(i),curr);
-               i++;
-               curr=curr->next;
-            }
-            $objectdef=t;
-            printf("(%d)(objectdef->[elist])\n",++pnum);}
-         |LEFT_ARRAY indexed RIGHT_ARRAY {
-            expr *t=newexpr(newtable_e);
-            t->sym=newtmp();
-            emit(tablecreate,t,NULL,NULL);
-            indext *curr=$indexed;
-            while(curr!=NULL){
-               emit(tablesetelem,t,curr->index,curr->value);
-               curr=curr->next;
-            }
-            $objectdef=t;
-            printf("(%d)(objectdef->[indexed])\n",++pnum);}
+objectdef:LEFT_ARRAY elist RIGHT_ARRAY {printf("(%d)(objectdef->[elist])\n",++pnum);}
+         |LEFT_ARRAY indexed RIGHT_ARRAY {printf("(%d)(objectdef->[indexed] )\n",++pnum);}
 	       ;
-indexed:indexedelem indexedelems {
-             printf("OZUNA\n");
-            $1->next=$2;
-             printf("FARR\n");
-            $$=$1;
-             printf("J BALVIN\n");
-           
-            printTableindex($$);
-            printf("(%d)(indexed->indexedelem indexedelems)\n",++pnum);}
+indexed:indexedelem indexedelems {printf("(%d)(indexed->indexedelem indexedelems)\n",++pnum);}
          ;  
          
  	   
 		
-indexedelems	: COMMA indexedelem indexedelems	{
-               $2->next=$3;
-               $$=$2;
-               
-               printf("(%d)(indexedelems-> ,indexedelem indexedelems)\n",++pnum);}
-				|	{ $$=NULL; printf("(%d)(indexedelems->  )\n",++pnum);}
+indexedelems	: COMMA indexedelem indexedelems	{printf("(%d)(indexedelems-> ,indexedelem indexedelems)\n",++pnum);}
+				| /*empty*/		{printf("(%d)(indexedelems->  )\n",++pnum);}
 				;	
 
-indexedelem :LEFT_CBRACKET expr COLON expr RIGHT_CBRACKET {
-               indext *ptr=(indext *)malloc(sizeof(indext));
-               ptr->index=$2;
-               ptr->value=$4;
-               $$=ptr;
-               printf("(%d)(indexedelem ->{ expr : expr })\n",++pnum);}
+indexedelem :LEFT_CBRACKET expr COLON expr RIGHT_CBRACKET {printf("(%d)(indexedelem ->{ expr : expr })\n",++pnum);}
              ;
-block:LEFT_CBRACKET { ++scope;}  stmts RIGHT_CBRACKET {Hide(scope--); $block=$stmts; printf("(%d)(block->{stmts})\n",++pnum);}
+block:LEFT_CBRACKET { ++scope;}  stmts RIGHT_CBRACKET {Hide(scope--); printf("(%d)(block->{stmts})\n",++pnum);}
      ;
 
-funcblockstart: { push(loopcounterstack, loopcounter); loopcounter=0; }
 
-funcblockend:{ loopcounter = pop(loopcounterstack); }
-
-funcbody: funcblockstart block funcblockend{
+funcbody:block{
    $funcbody=currentscopeoffset();
    exitscopespace();
    printf("(%d)(funcbody->block )\n",++pnum);
@@ -1039,35 +1006,26 @@ funcprefix:FUNC_ST funcname{
     push(scopeoffsetstack,currentscopeoffset());
     enterscopespace();
     resetformalArgoffset();
-    funcounter++;
     printf("(%d)(funcprefix->FUNC_ST funcname )\n",++pnum);
 }
 ;
 
 
-funcdef:N funcprefix funcargs funcbody{
-     
+funcdef:funcprefix funcargs funcbody{
      exitscopespace();
-   
-     SymbolTableEntry *ptr=(SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-     $funcdef=ptr;
-     
+     $funcdef->totalLocals=$funcbody;
 
      int offset = pop(scopeoffsetstack);
      restorecurrscopeoffset(offset); 
      if($funcprefix!=NULL){
-          $funcdef=$funcprefix;
-          $funcdef->totalLocals=$funcbody;
-   
+         $funcdef= $funcprefix;  
      }else{
-          $funcdef=NULL;
+        $funcdef=NULL;
        printf("$funcprefix is NULL in :funcdef:funcprefix funcargs funcbody\n");
      }
     
-     
      emit(funcend,function_def($funcprefix), NULL, NULL);
-     //patchlabel($N,nextquadlabel());
-     funcounter--;
+
      printf("(%d)(funcdef->funcprefix funcargs funcbody )\n",++pnum);
 }
 ;
@@ -1099,136 +1057,16 @@ idlist:ID {LookUpFormal($1 ,yylineno,scope);} IDS {printf("(%d)(idlist->ID IDS)\
 IDS:COMMA ID {LookUpFormal($2 ,yylineno,scope);} IDS {printf("(%d)(IDS->COMMA ID IDS)\n",++pnum);}
 	 | {printf("(%d)(IDS-> )\n",++pnum);}
 	 ;
-
-elseprefix:ELSE_ST
-{
-       
-        emit(jump, NULL, NULL, NULL);
-        $elseprefix = currquad();
-}
-
-ifprefix:IF_ST LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
-            emit(if_eq,NULL,$expr,newexpr_bool(1));
-            
-            quads[currquad()].label=currquad()+2;
-            emit(jump, NULL, NULL, NULL);
-            $ifprefix = currquad();
-            printf("(%d)(ifprefix->if(expr)\n",++pnum);
-        }
-        ; 
-ifstmt1:ifprefix stmt {patchlabel($ifprefix,nextquadlabel()); printf("(%d)(ifstmt->ifprefix stmt )\n",++pnum);}
-        ;
-ifstmt2:ifprefix stmt  elseprefix stmt {
-         patchlabel($ifprefix, $elseprefix + 1);
-         patchlabel($elseprefix, nextquadlabel());
-         printf("(%d)(ifstmt2->if ifprefix stmt elseprefix stmt ) \n",++pnum);}
+ifstmt:IF_ST LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt {printf("(%d)(fstmt->(expr) stmt )\n",++pnum);}
+       |IF_ST LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  ELSE_ST stmt {printf("(%d)(ifstmt->if (expr) stmt else stmt ) \n",++pnum);}
        ;
+whilestmt : WHILE_ST LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  {printf("(%d)(whilestmt->while ( expr ) stmt ) \n",++pnum);}
 
-loopstart: { ++loopcounter; }
-         ;
+forstmt:     	FOR_ST LEFT_PARENTHESIS elist SEMICOLON expr SEMICOLON elist RIGHT_PARENTHESIS stmt {printf("(%d)(forstmt->for (elist;expr;elist) stmt )\n",++pnum);}
+             	; 
 
-loopend: { --loopcounter; }
-         ;
-
-loopstmt: loopstart stmt loopend { $loopstmt = $stmt;
-             printf("(%d)(loopstmt->loopstart stmt loopend )\n",++pnum);
-          }
-         ;
-
-whilestart:WHILE_ST
-          {
-            $whilestart = nextquadlabel();
-            printf("(%d)(whilestart->WHILE_ST)\n",++pnum);
-          }
-          ;
-
-whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS
-         {
-             emit(if_eq,NULL,$expr,newexpr_bool(1));
-             quads[currquad()].label=currquad()+2;
-             emit(jump, NULL, NULL,NULL);
-             $whilecond = currquad();
-             printf("(%d)(whilecond->(expr) stmt)\n",++pnum);
-         }
-         ;
-
-whilestmt :whilestart whilecond loopstmt
-        {
-             emit(jump, NULL, NULL, NULL);
-             quads[currquad()].label=$whilestart;
-             patchlabel($whilecond, nextquadlabel());
-             if($loopstmt!=NULL){
-                Printpatchlist ($loopstmt->breakList);
-                Printpatchlist ($loopstmt->contList);
-                patchlist($loopstmt->breakList, nextquadlabel());
-                patchlist($loopstmt->contList, $whilestart);
-             }
-             printf("(%d)(whilestart->whilecond whilecond loopstmt)\n",++pnum);
-        }
-        ;
-
-
-
-//whilestmt : WHILE_ST LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  {printf("(%d)(whilestmt->while ( expr ) stmt ) \n",++pnum);}
-
-N :{ $N = nextquadlabel(); emit(jump,NULL,NULL,NULL); }
-  ;
-
-M :{ $M = nextquadlabel(); }
-  ;
-
-forprefix : FOR_ST LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON
-          {
-            forpre *ptr=(forpre*)malloc(sizeof(forpre));
-            ptr->test = $M;
-            ptr->enter = nextquadlabel();
-            $forprefix=ptr;
-            emit(if_eq,NULL,$expr,newexpr_bool(1));
-          }
-          ;
-
-forstmt: forprefix N elist RIGHT_PARENTHESIS N loopstmt N
-          {
-            patchlabel($forprefix->enter,$5+1); 
-            patchlabel($2, nextquadlabel()); 
-            patchlabel($5, $forprefix->test);
-            patchlabel($7, $2+1);
-             if($loopstmt!=NULL){
-                Printpatchlist ($loopstmt->breakList);
-                Printpatchlist ($loopstmt->contList);
-                patchlist($loopstmt->breakList, nextquadlabel());
-                patchlist($loopstmt->contList, $2+1);
-             }
-          }
-          ;
-
-
-//forstmt:     	FOR_ST LEFT_PARENTHESIS elist SEMICOLON expr SEMICOLON elist RIGHT_PARENTHESIS stmt {printf("(%d)(forstmt->for (elist;expr;elist) stmt )\n",++pnum);}
-  //           	; 
-
-returnstmt:RETURN_ST SEMICOLON {
-            printf("FUNCCOUNTER:%d\n",funcounter);
-            if(funcounter>0){
-                emit(ret,NULL,NULL,NULL);
-                emit(jump,NULL,NULL,NULL);
-            }else{
-             printf("\033[0;31m");
-		      	 printf("Error(%d)	[Retrun not in function] \n",yylineno); 
-		         printf("\033[0m");
-            }
-            
-            printf("(%d)(returnstmt->return ;)\n",++pnum);}
-          |RETURN_ST expr SEMICOLON {
-            printf("FUNCCOUNTER:%d\n",funcounter);
-            if(funcounter>0){
-                 emit(ret,$expr,NULL,NULL);
-                 emit(jump,NULL,NULL,NULL);
-            }else{
-             printf("\033[0;31m");
-		      	 printf("Error(%d)	[Retrun not in function] \n",yylineno); 
-		         printf("\033[0m");
-            }          
-            printf("(%d)(returnstmt->return expr;)\n",++pnum);}
+returnstmt:RETURN_ST SEMICOLON {printf("(%d)(returnstmt->return ;)\n",++pnum);}
+          |RETURN_ST expr SEMICOLON {printf("(%d)(returnstmt->return expr;)\n",++pnum);}
           ;
 
 
@@ -1256,7 +1094,6 @@ int main(int argc,char** argv)
     printf("--------------------            Syntax Analysis         --------------------\n");
     InitHash();
     scopeoffsetstack=createStack(1000);
-    loopcounterstack=createStack(1000);
     emit(start,NULL,NULL,NULL);
     yyparse();
    // display();

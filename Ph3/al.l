@@ -210,8 +210,8 @@ OTHER4  .
 
 
 
-{NUMBER_INT}     {++count;  yylval.intVal=atoi(yytext); insertNode(yylineno,NULL,yytext,2); return NUMBER; }
-{NUMBER_REAL}     {++count;  yylval.doubleVal=atof(yytext);	insertNode(yylineno,NULL,yytext,3); return NUMBER;}
+{NUMBER_INT}     {++count;  yylval.intVal=atoi(yytext); insertNode(yylineno,NULL,yytext,2); return NUMBER_INT; }
+{NUMBER_REAL}     {++count;  yylval.doubleVal=atof(yytext);	insertNode(yylineno,NULL,yytext,3); return NUMBER_REAL;}
 
 {STRING}     {
 
@@ -276,6 +276,7 @@ OTHER4  .
 			strcat(final , a);
 			++count;
 			insertNode(yylineno,Stoken,final,4);
+			yylval.strVal=strdup(Stoken);
 			return STRING;
 			
 		}
