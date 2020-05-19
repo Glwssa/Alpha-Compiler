@@ -1118,12 +1118,12 @@ YY_RULE_SETUP
 case 30:
 YY_RULE_SETUP
 #line 213 "al.l"
-{++count;  yylval.intVal=atoi(yytext); insertNode(yylineno,NULL,yytext,2); return NUMBER; }
+{++count;  yylval.intVal=atoi(yytext); insertNode(yylineno,NULL,yytext,2); return NUMBER_INT; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
 #line 214 "al.l"
-{++count;  yylval.doubleVal=atof(yytext);	insertNode(yylineno,NULL,yytext,3); return NUMBER;}
+{++count;  yylval.doubleVal=atof(yytext);	insertNode(yylineno,NULL,yytext,3); return NUMBER_REAL;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
@@ -1191,6 +1191,7 @@ YY_RULE_SETUP
 			strcat(final , a);
 			++count;
 			insertNode(yylineno,Stoken,final,4);
+			yylval.strVal=strdup(Stoken);
 			return STRING;
 			
 		}
@@ -1198,77 +1199,77 @@ YY_RULE_SETUP
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 285 "al.l"
+#line 286 "al.l"
 {++count;  insertNode(yylineno,"LEFT BRACKET",yytext,5); return LEFT_CBRACKET;  }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 286 "al.l"
+#line 287 "al.l"
 {++count;  insertNode(yylineno,"RIGHT BRACKET",yytext,5); return  RIGHT_CBRACKET;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 287 "al.l"
+#line 288 "al.l"
 {++count;  insertNode(yylineno,"LEFT PARENTHESIS",yytext,5); return LEFT_PARENTHESIS;  }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 288 "al.l"
+#line 289 "al.l"
 {++count;  insertNode(yylineno,"RIGHT PARENTHESIS",yytext,5); return RIGHT_PARENTHESIS; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 289 "al.l"
+#line 290 "al.l"
 {++count;  insertNode(yylineno,"SEMICOLON",yytext,5); return SEMICOLON; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 290 "al.l"
+#line 291 "al.l"
 {++count;  insertNode(yylineno,"COMMA",yytext,5); return COMMA; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 291 "al.l"
+#line 292 "al.l"
 {++count;  insertNode(yylineno,"COLON",yytext,5); return  COLON; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 292 "al.l"
+#line 293 "al.l"
 {++count;  insertNode(yylineno,"DOUBLE_COLON",yytext,8); return DOUBLE_COLON; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 293 "al.l"
+#line 294 "al.l"
 {++count;  insertNode(yylineno,"FULL_STOP",yytext,8); return  FULL_STOP; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 294 "al.l"
+#line 295 "al.l"
 {++count;  insertNode(yylineno,"RANGE",yytext,8); return RANGE; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 295 "al.l"
+#line 296 "al.l"
 {++count;  insertNode(yylineno,"LEFT_ARRAY",yytext,8); return LEFT_ARRAY;  }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 296 "al.l"
+#line 297 "al.l"
 {++count;  insertNode(yylineno,"RIGHT_ARRAY",yytext,8); return  RIGHT_ARRAY; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 299 "al.l"
+#line 300 "al.l"
 {++count; yylval.strVal=strdup(yytext);  insertNode(yylineno,NULL,yytext,1); return ID; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 301 "al.l"
+#line 302 "al.l"
 {++count;  insertNode(yylineno,"LINE COMMENT",yytext,7); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 303 "al.l"
+#line 304 "al.l"
 {
        int firstline=yylineno;
        int lastline=1;
@@ -1316,35 +1317,35 @@ YY_RULE_SETUP
 case 48:
 /* rule 48 can match eol */
 YY_RULE_SETUP
-#line 347 "al.l"
+#line 348 "al.l"
 {;}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 348 "al.l"
+#line 349 "al.l"
 {printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m"); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 349 "al.l"
+#line 350 "al.l"
 {printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m");}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 350 "al.l"
+#line 351 "al.l"
 {printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m"); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 351 "al.l"
+#line 352 "al.l"
 {printf("\033[0;31m");printf("Undifined Character '%s' in line: %d\n",yytext,yylineno);printf("\033[0m"); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 353 "al.l"
+#line 354 "al.l"
 ECHO;
 	YY_BREAK
-#line 1348 "al.c"
+#line 1349 "al.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2351,7 +2352,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 352 "al.l"
+#line 353 "al.l"
 
 
 

@@ -112,8 +112,8 @@ typedef struct expr{
     char* strConst;
     unsigned char boolConst;
     struct expr* next;
-    int truelist;
-    int falselist;
+    int trueList;
+    int falseList;
     int quadF;
 }expr;
 
@@ -550,7 +550,7 @@ expr *newexpr(expr_t t){
   }
 
   if(e->type!=1){
-      printf("SLOGAN MPAMPAS\n");
+    //  printf("SLOGAN MPAMPAS\n");
       return  e;
   }else{
       expr *result=newexpr(var_e);
@@ -836,8 +836,36 @@ int newlist (int i)
 
 void Printpatchlist (int list) {
     while (list) {
-      printf("MAGIC:%d",list);
+    //  printf("MAGIC:%d",list);
       int next = quads[list].label;
       list = next;
     }
 }
+
+
+void Merikh_Assign(expr *$expr){
+                quad *ptrQ=NULL;
+                emit(assign,$expr,newexpr_bool(1),NULL);
+                int curr=currquad();
+                patchlist($expr->trueList,curr);
+                
+                emit(jump,NULL,NULL,NULL);
+                ptrQ=ReturnQuad(currquad());
+                 
+                if(ptrQ!=NULL) ptrQ->label=curr+3;
+                emit(assign,$expr,newexpr_bool(0),NULL);
+                patchlist($expr->falseList,currquad());
+}
+
+
+int FindLabelLast (int list) {
+     int prev;
+    while (list) {
+    //  printf("MAGIC:%d",list);
+      prev=list;
+      int next = quads[list].label;
+     
+      list = next;
+    }
+      return prev;
+}     

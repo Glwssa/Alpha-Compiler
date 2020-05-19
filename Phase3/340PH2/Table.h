@@ -1,9 +1,69 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "assert.h"
 #define  MAX_TABLE 10
 
 
+unsigned programVaroffset=0;
+unsigned functionLocaloffset=0;
+unsigned formalArgoffset=0;
+unsigned scopeSpaceCounter=1;
+
+void resetformalArgoffset(){
+	formalArgoffset=0;
+}
+
+void resetfunctionLocaloffset(){
+	functionLocaloffset=0;
+}
+
+
+typedef enum{
+  programvar=0,
+  functionlocal,
+  formalarg,
+  function
+}scopespace_t;
+
+scopespace_t currscopespace(){
+	if(scopeSpaceCounter==1)
+	 return programvar;
+	else if (scopeSpaceCounter%2==0)
+	 return formalarg;
+	 else
+	 {
+		 return functionlocal;
+	 }
+	 
+}
+
+unsigned currentscopeoffset(){
+	switch( currscopespace()){
+		case programvar:return programVaroffset;
+		case functionlocal:return functionLocaloffset;
+		case formalarg:return formalArgoffset;
+		default:assert(0);
+	}
+}
+
+unsigned incurrentscopeoffset(){
+	switch( currscopespace()){
+		case programvar:++programVaroffset; break;
+		case functionlocal:++functionLocaloffset; break;
+		case formalarg:++formalArgoffset; break;
+		default:assert(0);
+	}
+}
+
+void enterscopespace(){
+	++scopeSpaceCounter;
+}
+
+void exitscopespace(){
+	assert(scopeSpaceCounter>1);
+	--scopeSpaceCounter;
+}
 
 typedef enum {
  GLOBAL=0, LOCAL, FORMAL,
@@ -22,6 +82,19 @@ const char* GetType(SymbolType type){
 
 }
 
+
+const char* GetSpaceType(scopespace_t type){
+  switch(type)
+  {
+  	case programvar: return "programvar";
+	case functionlocal: return "functionlocal";
+	case formalarg: return "formalarg";
+	case function:return "function";
+  }
+
+}
+
+
 const char* IsActive(int i){
 	if(i==1) return "Active";
 	else 	 return  "Inactive";
@@ -33,6 +106,10 @@ char *name;
 int scope;
 int line;
 SymbolType type;
+scopespace_t space;
+int offset;
+unsigned int iadress;
+unsigned int totalLocals;
 struct SymbolTableEntry *next;
 struct SymbolTableEntry *nextScope;
 struct SymbolTableEntry *args;
@@ -103,8 +180,23 @@ void PrintScopes(){
 	    ptr2=ptr->symbol;
 	    printf("-----------	Scope %d ----------\n",ptr->scope);
 		while(ptr2!=NULL){
+				if(ptr2->type==3){
+						printf("\"%s\"	[%s] (line %d) (scope %d) (iadress %d) (totalLocals %d) (%s)",ptr2->name
+				        ,GetType(ptr2->type),ptr2->line,ptr2->scope,ptr2->iadress,ptr2->totalLocals,IsActive(ptr2->isActive));
+				}
+
+				if(ptr2->type==4){
+						printf("\"%s\"	[%s] (line %d) (scope %d)  (%s)",ptr2->name
+				        ,GetType(ptr2->type),ptr2->line,ptr2->scope,IsActive(ptr2->isActive));
+				}
+
+
+				if(ptr2->type==0||ptr2->type==1||ptr2->type==2){
+					    printf("\"%s\"	[%s] (line %d) (scope %d) (space %s) (offset %d) (%s)",ptr2->name
+				        ,GetType(ptr2->type),ptr2->line,ptr2->scope,GetSpaceType(ptr2->space),ptr2->offset,IsActive(ptr2->isActive));
+				}
 				
-				printf("\"%s\"	[%s] (line %d) (scope %d) (%s)",ptr2->name,GetType(ptr2->type),ptr2->line,ptr2->scope,IsActive(ptr2->isActive));
+				
 				printf("\n");
 			ptr2=ptr2->nextScope;   //traversal of scope list
 		}
@@ -176,7 +268,7 @@ int hash(const char * str) {
 
 
 
-void insert( SymbolType  type,char *name,int scope,int line)
+SymbolTableEntry *insert( SymbolType  type,char *name,int scope,int line)
 {
 	
 	  		SymbolTableEntry* newnode=(SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
@@ -193,6 +285,13 @@ void insert( SymbolType  type,char *name,int scope,int line)
 	  		newnode->name=strdup(name);
 	  		newnode->scope=scope;
 	  		newnode->nextScope=NULL;
+			if(type!=3&&type!=4){
+				newnode->space=currscopespace();
+				newnode->offset=currentscopeoffset();
+				incurrentscopeoffset();
+			}
+			
+			
 	  
 	        int i=hash(name);
 	   		if(Hash[i] == NULL){		//if pointer in first element exist//
@@ -213,7 +312,7 @@ void insert( SymbolType  type,char *name,int scope,int line)
 				EnterScopeList(scope,newnode);   //if returns 1,struct of scope exist
 			}
     		
-    		
+    		 return newnode;
 }
 
 
@@ -257,12 +356,16 @@ insert(4,"print",0,0);
 
 }
 
-void LookUpLocal(char *name,int scope,int line){
+SymbolTableEntry *LookUpLocal(char *name,int scope,int line){
 	int i=hash(name);
 	if(Hash[i]==NULL){
 		printf("Insertion(%d)	[Local:%s]\n",line,name);
-		if(scope==0) insert(0,name,scope,line);
-		else 		 insert(1,name,scope,line);
+		if(scope==0) {
+			return insert(0,name,scope,line);
+		}
+		else {
+			return insert(1,name,scope,line);
+		}		 
 	}else{
 
         if(scope!=0){
@@ -272,7 +375,7 @@ void LookUpLocal(char *name,int scope,int line){
 					printf("\033[0;31m");
 					printf("Error(%d)	[Local] (Shadowing Function:%s)\n",line,name); 
 					printf("\033[0m");
-					return;
+					return NULL;
 				}
 				c=c->next;
 			}
@@ -285,16 +388,21 @@ void LookUpLocal(char *name,int scope,int line){
 	    
 	    if(c==NULL){
 	    	printf("Insertion(%d)	[Local:%s]\n",line,name);
-		    if(scope==0) insert(0,name,scope,line);
-		    else 		 insert(1,name,scope,line);
+		    if(scope==0){
+				return insert(0,name,scope,line);
+			} 
+		    else{
+				return insert(1,name,scope,line);
+			}		 
 		}else{
 			printf("\033[0;32m");
 			printf("Reference(%d)	[Local]     \"%s\"	(%d)\n",line,name,c->line);
 			printf("\033[0m");
+			return c;
 		}
 	}
 	
-		return;
+		
 }
 
 void Hide(int scope)
@@ -330,7 +438,7 @@ void Hide(int scope)
  return ;
 }
 
-void LookUpGlobal(char *name,int line)
+SymbolTableEntry *LookUpGlobal(char *name,int line)
 {
   Scope *ptr=HeadScope;
   SymbolTableEntry  *ptr2;
@@ -342,21 +450,23 @@ void LookUpGlobal(char *name,int line)
         }
   }else{
     printf("Error(%d).HeadScope is NULL(LookUpGlobal).\n",line);
-    return ;
+    return NULL;
   } 
 
   if(ptr2!=NULL) {
     printf("\033[0;32m");
     printf("Reference(%d)	[Global::]     \"%s\"	(%d)\n",line,name,ptr2->line);
     printf("\033[0m");
+	return ptr2;
   }else{
     printf("\033[0;31m");
     printf("Error(%d)	[Global::] (No existing reference to symbol:%s)\n",line,name); 
     printf("\033[0m");
+	return NULL;
 
   }
   
-  return;
+ 
 }
 
 
@@ -390,13 +500,13 @@ void PrintScopes2(){
 
 
 
-void LookUpFunction(int scope,char *name,int line)
+SymbolTableEntry *LookUpFunction(int scope,char *name,int line)
 {
  
 	int i=hash(name);
 	if(Hash[i]==NULL){
 		printf("Insertion(%d)	[Function:%s]\n",line,name);
-		insert(3,name,scope,line);
+		return insert(3,name,scope,line);
 	
 	}else{
 
@@ -414,23 +524,26 @@ void LookUpFunction(int scope,char *name,int line)
 					printf("\033[0;31m");
 					printf("Error(%d)	[Function] (Shadowing Function:%s)\n",line,name); 
 					printf("\033[0m");
-					return;
+					return NULL;
 				}
 				c=c->next;
 			}
 			
-			if(c==NULL) 	insert(3,name,scope,line);
-			return;
+			if(c==NULL) {
+				return 	insert(3,name,scope,line);
+			}	
+			
 		}else{
 			printf("\033[0;31m");
 			if(c->type==0||c->type==1||c->type==2) 	printf("Error(%d)	[Function] (Redeclaration Var:%s)		(%d)\n",line,name,c->line);
-			if(c->type==3)	printf("Error(%d)	[Function] (Redeclaration Function:%s)		(%d)\n",line,name,c->line);
+			if(c->type==3)	printf("Error(%d)	[Function] (Redeclaration Function:%s)		(%d)\n",line,name,c->line); 
 			if(c->type==4)  	printf("Error(%d)	[Function] (Shadowing Function:%s)		(%d)\n",line,name,c->line); 
 			printf("\033[0m");
+			return NULL;
 		}
 	}
 	
-		return;
+		
 }
 
 
@@ -621,7 +734,7 @@ void MakeTableWithElementsReverse(){
 }
 
 
-void LookUpVariable(int scope,char *name,int line)
+SymbolTableEntry *LookUpVariable(int scope,char *name,int line)
 {
 	MakeTableWithElementsReverse();   //make Global list reverse
 	
@@ -673,14 +786,14 @@ void LookUpVariable(int scope,char *name,int line)
 			printf("\033[0;32m");
 			printf("Reference(%d)	[Variable] (Refernce to Global:%s)		(%d)\n",line,name,ptr2->line);
     		printf("\033[0m");	
-    		return;
+    		return ptr2;
 		}
 
         if(ptr2->type==3) {
 			printf("\033[0;32m");
 			printf("Reference(%d)	[Variable] (Refernce to Function:%s)		(%d)\n",line,name,ptr2->line);
 			printf("\033[0m");	
-			return;
+			return ptr2;
 		}
 
 
@@ -689,39 +802,25 @@ void LookUpVariable(int scope,char *name,int line)
 			printf("\033[0;31m");
 			printf("Error(%d)	[Variable] (Function Between:%s)		(%d)\n",line,name,ptr2->line); 
 			printf("\033[0m");	
-			return;
+			return NULL;
 		}else{
 			printf("\033[0;32m");
 			printf("Reference(%d)	[Variable] (Refernce to Variable:%s)			(%d)\n",line,name,ptr2->line);
     		printf("\033[0m");	
-    		return;
+    		return ptr2;
 		}
 		
-		/*
-		if(functionFlag==1&&ptr2->type!=3&&scopeoffunction>=scope){
-			printf("\033[0;32m");
-			printf("Reference(%d)	[Variable] (Refernce to Variable:%s)			(%d)\n",line,name,ptr2->line);
-    		printf("\033[0m");	
-    		return;
-
-		}
-		
-		
-		if(functionFlag==0&&ptr2->scope!=0){
-			printf("\033[0;32m");
-			printf("Reference(%d)	[Variable] (Refernce to Variable:%s)			(%d)\n",line,name,ptr2->line);
-    		printf("\033[0m");	
-    		return;
-		}else{
-			printf("line(%d):LookUpVariable  ERROR\n");
-			return;
-		}*/
+	
 	}else{
 		
 		printf("Insertion(%d)	[Variable:%s]\n",line,name);
-		if(scope==0) insert(0,name,scope,line);
-		else 		 insert(1,name,scope,line);
-	}
+		if(scope==0){
+			return 	 insert(0,name,scope,line);
+		}
+		else {
+			return	  insert(1,name,scope,line);
+	    }
+	}		
 	 
 	 return;
 }
@@ -859,3 +958,61 @@ int IsFunctionLocal(int scope,char *name,int line)
     return;
 }
 
+SymbolTableEntry *LookUpScope(char *name,int scope){
+
+	Scope *ptr=HeadScope;
+	SymbolTableEntry *ptr2;
+
+	while(ptr!=NULL){
+		if(ptr->scope==scope){
+			ptr2=ptr->symbol;
+			while(ptr2!=NULL){
+					if(strcmp(ptr2->name,name)==0&&(ptr2->isActive==1)) return ptr2;
+					ptr2=ptr2->nextScope;   //traversal of scope list
+			}
+		}
+		ptr=ptr->next;
+	}
+	
+	return NULL;
+}
+
+SymbolTableEntry *newsymbol( SymbolType  type,char *name,int scope,int line)
+{
+	
+	  		SymbolTableEntry* newnode=(SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
+	  		if(newnode==NULL){
+	  	//		printf("error in making of new entry of hash\n");
+				return;	
+			}
+			
+            newnode->type=type;
+	  		newnode->isActive=1;
+	  		newnode->next=NULL;
+	  		newnode->args=NULL;
+	  		newnode->line=line;
+	  		newnode->name=strdup(name);
+	  		newnode->scope=scope;
+	  		newnode->nextScope=NULL;
+	  
+	        int i=hash(name);
+	   		if(Hash[i] == NULL){		//if pointer in first element exist//
+        		Hash[i] = newnode;
+		
+   	    	}else{
+        		c=Hash[i];
+        		while(c->next != NULL) //if pointer in first element of hash does not exist//
+        		{
+           			c=c->next;
+        		}
+        		c->next=newnode;		//chaining
+    		}
+    		
+    		if(ScopeOfVariableExist(scope)==0){  //if returns 0,scope of variable does not exist//
+    			MakeNewScope(scope,newnode);
+			}else{
+				EnterScopeList(scope,newnode);   //if returns 1,struct of scope exist
+			}
+    		
+    		return newnode;
+}

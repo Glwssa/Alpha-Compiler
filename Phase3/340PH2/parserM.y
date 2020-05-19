@@ -1,6 +1,6 @@
 %{
 
-#include "P3.h"
+#include "P3M.h"
 
 int yyerror (char* yaccProvidedMessage);
 int yylex(void);
@@ -19,8 +19,8 @@ int lock2=0;
 struct Stack *scopeoffsetstack; 
 struct Stack *loopcounterstack; 
 int funcounter=0;
-
-
+int lockA=1;
+int lock=1;
 expr *ptrEx=NULL;
 expr *ptrElist=NULL;
 int flagElist;
@@ -187,23 +187,10 @@ stmts :stmts stmt{
 
 
 stmt : expr SEMICOLON { 
-        /*
-         if(1==0){
-                
-                emit(assign,$expr,newexpr_bool(1),NULL);
-                int curr=currquad();
-                patchlist($expr->truelist,curr);
-                
-                emit(jump,NULL,NULL,NULL);
-                ptrQ=ReturnQuad(currquad());
-                 
-                if(ptrQ!=NULL) ptrQ->label=curr+3;
-                emit(assign,$expr,newexpr_bool(0),NULL);
-                patchlist($expr->falselist,currquad());
+        
 
-         }else{
-             printf("error\n");
-         } */
+            if(lock==0) Merikh_Assign($expr);
+            lock=1;
             resettmp(); $stmt=NULL;  printf("(%d)(stmt->expr;)\n",++pnum);}
        |ifstmt1 { resettmp(); $stmt=NULL;    printf("(%d)(stmt->ifstmt1\n)",++pnum);}    
        |ifstmt2 { resettmp();  $stmt=NULL;   printf("(%d)(stmt->ifstmt2\n)",++pnum);}   
@@ -356,17 +343,17 @@ expr	:assignexpr
           printf("(%d)(expr->expr mod expr)\n",++pnum);}
 	    |expr COMP_BIGGER_OP expr {
             if($1!=NULL&&$3!=NULL){
+                lock=0;
+                lockA=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }
                emit(if_greater,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+               $$->trueList=currquad();
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
-
+               $$->falseList=currquad();
+               //Merikh_Assign($$);
             }else{
                  $$=NULL;
                  printf("NULL\n");
@@ -374,16 +361,18 @@ expr	:assignexpr
           printf("(%d)(expr->expr>expr)\n",++pnum);}
 	    |expr COMP_BIGGER_EQUAL_OP expr {
             if($1!=NULL&&$3!=NULL){
+                lock=0;
+                lockA=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                   $$=TmpRec($$,$1,$3);
                }
+               
                emit(if_greatereq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+               $$->trueList=currquad();
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falseList=currquad();
+             //  Merikh_Assign($$);
 
             }else{
                  $$=NULL;
@@ -393,17 +382,18 @@ expr	:assignexpr
           printf("(%d)(expr->expr>=expr)\n",++pnum);}
 	    |expr COMP_LESS_OP expr {
             if($1!=NULL&&$3!=NULL){
+                lock=0;
+                lockA=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }
-               emit(if_less,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
-               emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
 
+               emit(if_less,NULL,$1,$3);
+               $$->trueList=currquad();
+               emit(jump,NULL,NULL,NULL);
+               $$->falseList=currquad();
+               //Merikh_Assign($$);
             }else{
                  $$=NULL;
                  printf("NULL\n");
@@ -412,17 +402,18 @@ expr	:assignexpr
           printf("(%d)(expr->expr<expr)\n",++pnum);}
     	 |expr COMP_LESS_EQUAL_OP expr {
             if($1!=NULL&&$3!=NULL){
+               lock=0;
+               lockA=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }
+               
                emit(if_lesseq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+               $$->trueList=currquad();
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
-
+               $$->falseList=currquad();
+              //Merikh_Assign($$);
             }else{
                  $$=NULL;
                  printf("NULL\n");
@@ -430,16 +421,30 @@ expr	:assignexpr
            printf("(%d)(expr->expr<=expr)\n",++pnum);}
      	 |expr COMP_EQUAL_OP expr {
            if($1!=NULL&&$3!=NULL){
+               lock=0;
+               lockA=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }
+              
+              
+               if($1->type==5 && $3->type!=5){
+                   Merikh_Assign($1);
+               }else if($3->type==5 && $1->type!=5){
+                    Merikh_Assign($3);
+               }else if($3->type==5 && $1->type==5){
+                    Merikh_Assign($1);
+                    Merikh_Assign($3);
+               }else{
+
+               } 
+
                emit(if_eq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
+               $$->trueList=currquad();
                emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
+               $$->falseList=currquad();
+               
 
             }else{
                  $$=NULL;
@@ -448,55 +453,140 @@ expr	:assignexpr
             printf("(%d)(expr->expr==expr)\n",++pnum);}
     	 |expr COMP_NOT_EQUAL_OP expr {
           if($1!=NULL&&$3!=NULL){
+               lock=0;
+               lockA=0;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
                    $$=TmpRec($$,$1,$3);
                }
-               emit(if_noteq,NULL,$1,$3);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
-               emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);
 
+               if($1->type==5 && $3->type!=5){
+                   Merikh_Assign($1);
+               }else if($3->type==5 && $1->type!=5){
+                    Merikh_Assign($3);
+               }else if($3->type==5 && $1->type==5){
+                    Merikh_Assign($1);
+                    Merikh_Assign($3);
+               }else{
+
+               } 
+
+               emit(if_noteq,NULL,$1,$3);
+               $$->trueList=currquad();
+               emit(jump,NULL,NULL,NULL);
+               $$->falseList=currquad();
+              
             }else{
                  $$=NULL;
                  printf("NULL\n");
             }
          printf("(%d)(expr->expr!=expr)\n",++pnum);}
-    	 |expr AND_ST expr {
-            if($1!=NULL&&$3!=NULL){
+    	 |expr AND_ST M expr {
+             lockA=0;
+             lock=0;
+            if($1!=NULL&&$4!=NULL){
+               int flg2;
+               int flg1;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
-                   $$=TmpRec($$,$1,$3);
+                   $$=TmpRec($$,$1,$4);
                }   
-               emit(and,$$,$1,$3);
-             /*  emit(if_eq,$$,newexpr_bool(1),NULL);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
-               emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL); */
+           
+              if($1->type!=5){
+                  emit(if_eq,$1,newexpr_bool(1),NULL);
+                  $1->trueList=currquad();            
+                  emit(jump,NULL,NULL,NULL);
+                  patchlist($1->trueList,currquad()+1);
+                  $1->falseList=currquad();               
+                  flg1=1;
+              }else{
+                  flg1=0;
+              }
+
+              if($4->type!=5){
+                  emit(if_eq,$4,newexpr_bool(1),NULL);
+                  $4->trueList=currquad();
+                  emit(jump,NULL,NULL,NULL);
+                  $4->falseList=currquad();
+                  flg2=1;
+              }else{   
+                  flg2=0;           
+              }
+
+              if(flg1==1&&flg2==1){
+                    $$->trueList=$4->trueList;
+              }else if(flg1==1&&flg2==0){
+                    patchlist($4->trueList,currquad()-1);
+                    $$->trueList=$1->trueList;
+              }else if(flg1==0&&flg2==1){
+                    patchlist($1->trueList,currquad()-1);
+                    $$->trueList=$4->trueList;
+              }else{
+                   quads[$1->trueList].label=$1->trueList+2;
+                   $$->trueList=$4->trueList;
+              }
+               
+               
+
+               $$->falseList=mergelist($1->falseList,$4->falseList);
+            
             }else{
                  $$=NULL;
                  printf("expr->expr and expr,[$1 or $2 or both are NULL]\n");
             }
            printf("(%d)(expr->expr and expr)\n",++pnum);}
-    	 |expr OR_ST expr {
-            if($1!=NULL&&$3!=NULL){
+    	 |expr OR_ST  M expr {
+            if($1!=NULL&&$4!=NULL){
+               lockA=0;
+               lock=0;
+               int flg2;
+               int flg1;
                $$=newexpr(boolexpr_e);
                if($$!=NULL){
-                   $$=TmpRec($$,$1,$3);
+                   $$=TmpRec($$,$1,$4);
                }   
-               emit(or,$$,$1,$3);
-              /* emit(if_eq,$$,newexpr_bool(1),NULL);
-               quads[currquad()].label=currquad()+3;
-               emit(assign,$$,newexpr_bool(0),NULL);
-               emit(jump,NULL,NULL,NULL);
-               quads[currquad()].label=currquad()+2;
-               emit(assign,$$,newexpr_bool(1),NULL);  */
+           
+              if($1->type!=5){
+                  emit(if_eq,$1,newexpr_bool(1),NULL);
+                  $1->trueList=currquad();            
+                  emit(jump,NULL,NULL,NULL);
+                  $1->falseList=currquad();
+                  patchlist($1->falseList,currquad()+1);
+                  flg1=1;
+              }else{
+                  flg1=0;
+              }
 
-                printf("expr->expr or expr,[$1 or $2 or both are NULL]\n");
+              if($4->type!=5){
+                  emit(if_eq,$4,newexpr_bool(1),NULL);
+                  $4->trueList=currquad();
+                  emit(jump,NULL,NULL,NULL);
+                  $4->falseList=currquad();
+                  flg2=1;
+              }else{   
+                  flg2=0;           
+              }
+
+              if(flg1==1&&flg2==1){
+                    $$->falseList=$4->falseList;
+              }else if(flg1==1&&flg2==0){
+                    patchlist($4->falseList,currquad()-1);
+                    $$->falseList=$1->falseList;
+              }else if(flg1==0&&flg2==1){
+                    patchlist($1->falseList,currquad()-1);
+                    $$->falseList=$4->falseList;
+              }else{
+                  // quads[$1->falseList].label=$1->falseList+1;
+                   int lbl=FindLabelLast ($1->falseList);
+                   patchlist($1->falseList,lbl+1);
+                   $$->falseList=$4->falseList;
+              }
+               
+               
+
+               $$->trueList=mergelist($1->trueList,$4->trueList);
+            
+             
             }else{
                  $$=NULL;
                  printf("NULL\n");
@@ -524,7 +614,8 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
           printf("(%d)(term-> -expr UMINUS)\n",++pnum);}
        | NOT_ST expr	{
            if($expr!=NULL){
-               
+                lockA=0;
+                lock=0;
                 $$=newexpr(boolexpr_e);
                 if($$!=NULL){
                            if(istempexpr($expr)){
@@ -534,27 +625,26 @@ term:  LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
                            }
                }   
 
-                emit(not,$$,$expr,NULL);
-             /*  int var1,var2;
+              
+               int var1,var2;
                if($expr->type!=5)
                {
                      emit(if_eq,NULL,$expr,newexpr_bool(1));
-                     $$->truelist=makelist(currquad());
+                     $expr->trueList=currquad();
                      emit(jump,NULL,NULL,NULL);
-                     $$->falselist=makelist(currquad());
-                     var1=$$->falselist;
-                     var2=$$->truelist; 
-                     $$->truelist=var1;
-                     $$->falselist=var2; 
-                     $$->quadF=currquad()-1;
-                      printf("AAAAAXXXX:T%d,F:%d", $$->truelist, $$->falselist);
+                     $expr->falseList=currquad();
+                     var1=$expr->falseList;
+                     var2=$expr->trueList; 
+                     $$->trueList=var1;
+                     $$->falseList=var2; 
+                    
+                     // printf("AAAAAXXXX:T%d,F:%d", $$->trueList, $$->falseList);
                }else{
-                     var1=$expr->falselist;
-                     var2=$expr->truelist; 
-                     $$->truelist=var1;
-                     $$->falselist=var2; 
-                     $$->quadF=$expr->quadF;
-               }*/
+                     var1=$expr->falseList;
+                     var2=$expr->trueList; 
+                     $$->trueList=var1;
+                     $$->falseList=var2; 
+               }
                      
                   
            }else{
@@ -710,6 +800,13 @@ assignexpr:lvalue EQUAL_OP expr{
      }
   
       if($expr!=NULL){
+            if($3->trueList!=0&&$3->falseList!=0&&lockA==0){
+                Merikh_Assign($3);
+                lock=1;
+            }
+
+            lockA=0;
+
             if($lvalue->type==1){
              
                 emit(tablesetelem,$lvalue,$lvalue->index,$expr);
@@ -907,6 +1004,13 @@ methodcall: RANGE ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
             printf("(%d)(methodcall->..id(elist) )\n",++pnum);}
             ;
 elist:expr{
+
+                if($1->trueList!=0&&$1->falseList!=0){
+                 Merikh_Assign($1);
+                 lockA=1;
+                 lock=1;
+               }
+
                flagElist=0;
                elistptr++;
                if($expr!=NULL){                 
@@ -928,7 +1032,12 @@ elist:expr{
 	 
 exprs:COMMA expr {
        if(flagElist==0)
-       { 
+       {       
+               if($2->trueList!=0&&$2->falseList!=0){
+                 Merikh_Assign($2);
+                 lockA=1;
+                 lock=1;
+               }
                ptrElist=TableforlistHead[elistptr];
                while(ptrElist->next!=NULL){
                    ptrElist=ptrElist->next;
@@ -1121,6 +1230,12 @@ elseprefix:ELSE_ST
 }
 
 ifprefix:IF_ST LEFT_PARENTHESIS expr RIGHT_PARENTHESIS{
+
+            if($3->trueList!=0&&$3->falseList!=0){
+                 Merikh_Assign($expr);
+                 lockA=1;
+                 lock=1;
+             }
             emit(if_eq,NULL,$expr,newexpr_bool(1));
             
             quads[currquad()].label=currquad()+2;
@@ -1157,6 +1272,11 @@ whilestart:WHILE_ST
 
 whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS
          {
+             if($2->trueList!=0&&$2->falseList!=0){
+                 Merikh_Assign($2);
+                 lockA=1;
+                 lock=1;
+             }
              emit(if_eq,NULL,$expr,newexpr_bool(1));
              quads[currquad()].label=currquad()+2;
              emit(jump, NULL, NULL,NULL);
@@ -1192,6 +1312,11 @@ M :{ $M = nextquadlabel(); }
 
 forprefix : FOR_ST LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON
           {
+             if($expr->trueList!=0&&$expr->falseList!=0){
+                 Merikh_Assign($expr);
+                 lockA=1;
+                 lock=1;
+             }
             forpre *ptr=(forpre*)malloc(sizeof(forpre));
             ptr->test = $M;
             ptr->enter = nextquadlabel();

@@ -74,29 +74,30 @@ extern int yydebug;
     COMP_LESS_OP = 284,
     COMP_BIGGER_EQUAL_OP = 285,
     COMP_LESS_EQUAL_OP = 286,
-    NUMBER = 287,
-    STRING = 288,
-    LEFT_CBRACKET = 289,
-    RIGHT_CBRACKET = 290,
-    LEFT_PARENTHESIS = 291,
-    RIGHT_PARENTHESIS = 292,
-    SEMICOLON = 293,
-    COMMA = 294,
-    COLON = 295,
-    DOUBLE_COLON = 296,
-    FULL_STOP = 297,
-    RANGE = 298,
-    LEFT_ARRAY = 299,
-    RIGHT_ARRAY = 300,
-    ID = 301,
-    COMMENT = 302,
-    COMMENT1 = 303,
-    SPACE = 304,
-    OTHER = 305,
-    OTHER2 = 306,
-    OTHER3 = 307,
-    OTHER4 = 308,
-    UMINUS = 309
+    LEFT_CBRACKET = 287,
+    RIGHT_CBRACKET = 288,
+    LEFT_PARENTHESIS = 289,
+    RIGHT_PARENTHESIS = 290,
+    SEMICOLON = 291,
+    COMMA = 292,
+    COLON = 293,
+    DOUBLE_COLON = 294,
+    FULL_STOP = 295,
+    RANGE = 296,
+    LEFT_ARRAY = 297,
+    RIGHT_ARRAY = 298,
+    ID = 299,
+    NUMBER_REAL = 300,
+    NUMBER_INT = 301,
+    STRING = 302,
+    COMMENT = 303,
+    COMMENT1 = 304,
+    SPACE = 305,
+    OTHER = 306,
+    OTHER2 = 307,
+    OTHER3 = 308,
+    OTHER4 = 309,
+    UMINUS = 310
   };
 #endif
 /* Tokens.  */
@@ -129,42 +130,50 @@ extern int yydebug;
 #define COMP_LESS_OP 284
 #define COMP_BIGGER_EQUAL_OP 285
 #define COMP_LESS_EQUAL_OP 286
-#define NUMBER 287
-#define STRING 288
-#define LEFT_CBRACKET 289
-#define RIGHT_CBRACKET 290
-#define LEFT_PARENTHESIS 291
-#define RIGHT_PARENTHESIS 292
-#define SEMICOLON 293
-#define COMMA 294
-#define COLON 295
-#define DOUBLE_COLON 296
-#define FULL_STOP 297
-#define RANGE 298
-#define LEFT_ARRAY 299
-#define RIGHT_ARRAY 300
-#define ID 301
-#define COMMENT 302
-#define COMMENT1 303
-#define SPACE 304
-#define OTHER 305
-#define OTHER2 306
-#define OTHER3 307
-#define OTHER4 308
-#define UMINUS 309
+#define LEFT_CBRACKET 287
+#define RIGHT_CBRACKET 288
+#define LEFT_PARENTHESIS 289
+#define RIGHT_PARENTHESIS 290
+#define SEMICOLON 291
+#define COMMA 292
+#define COLON 293
+#define DOUBLE_COLON 294
+#define FULL_STOP 295
+#define RANGE 296
+#define LEFT_ARRAY 297
+#define RIGHT_ARRAY 298
+#define ID 299
+#define NUMBER_REAL 300
+#define NUMBER_INT 301
+#define STRING 302
+#define COMMENT 303
+#define COMMENT1 304
+#define SPACE 305
+#define OTHER 306
+#define OTHER2 307
+#define OTHER3 308
+#define OTHER4 309
+#define UMINUS 310
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 84 "parser.y" /* yacc.c:1909  */
+#line 99 "parserM.y" /* yacc.c:1909  */
 
 int intVal;
 double doubleVal;
 char*  strVal;
+struct  SymbolTableEntry *sym;
+struct expr *expr;
+unsigned un;
+struct call *callx;
+struct forpr *forpre;
+struct stmt_t *stmt_t;
+struct indext *indext;
 
-#line 168 "parser.h" /* yacc.c:1909  */
+#line 177 "parser.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
